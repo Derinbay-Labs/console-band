@@ -37,9 +37,38 @@ Set on install, or later from `/plugin`:
 | `city` | empty | Shown on the LOC row; empty hides it |
 | `latitude`, `longitude` | empty | Both set enables current weather from open-meteo.com |
 
-The only network call is the optional weather lookup. The band runs `git` in the session's
-working directory to show branch, last-commit age and modified-file count. Tool inputs shown in
-the log are redacted for common credential formats before they are stored.
+## What it runs, reads and sends
+
+- **Programs:** only `git`, with three fixed read-only commands in the session's working
+  directory — `git rev-parse --abbrev-ref HEAD`, `git log -1 --format=%ct` and
+  `git status --porcelain` — for the branch, last-commit age and modified-file count. It runs
+  nothing else and never runs a command it receives from anywhere.
+- **Network:** only `https://api.open-meteo.com/v1/forecast`, and only when both `latitude` and
+  `longitude` are set. The request carries those two coordinates and nothing else, every 30
+  minutes. With either option empty the mod makes no network request at all. No conversation
+  content, tool input, usage figure or file content is ever sent.
+- **Session data it reads:** model, Claude Code version, context-window breakdown, rate-limit
+  percentages and reset times, session cost, and the working directory's name. These are drawn
+  in the band and kept only in the session's own plugin state; nothing is written to disk or
+  sent anywhere.
+- **Credentials:** it reads none. Tool inputs shown in the activity log are passed through a
+  redaction step for common credential formats before they are kept in state.
+
+## What each hook does
+
+Every hook observes and passes its event on unchanged with `next(e)`; none blocks, rewrites or
+answers for the engine.
+
+| Hook | What it does |
+|---|---|
+| `tool.check` | Records the permission verdict the engine reached (allowed by rule, asked, denied) for the gate tally. It never changes or makes the decision. |
+| `tool.call` | Counts edits and errors for the turn receipt and settles an asked permission as cleared or denied. The call and its result pass through unchanged. |
+| `prompt.submit` | Marks the session as working so the band animates. |
+| `classic.UserPromptSubmit` | Reads the current permission mode to show on the band. |
+| `agent.offer` | Notes which advisor or architect agent types exist, to label their consults. |
+| `agent.spawn`, `turn.start`, `turn.step`, `turn.complete` | Track subagent cards, steps, tokens and the turn receipt. |
+| `session.start`, `session.measure`, `session.compact`, `session.append`, `session.end` | Refresh usage and git, log compactions and hand-backs, reset state on `/clear`. |
+| `ui.render` (`AbovePrompt`) | Draws the band. |
 
 ## Development
 

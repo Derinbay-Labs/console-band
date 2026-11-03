@@ -139,11 +139,10 @@ async function refreshUsage($: EngineInterface) {
 async function refreshGit($: EngineInterface) {
   const cwd = await $.session.cwd()
   const dir = cwd.split(/[\\/]/).filter(Boolean).pop() ?? cwd
-  const run = (argv: string[]) => $.process.run(argv, { timeoutMs: 5000 }).catch(() => null)
   const [head, log, status] = await Promise.all([
-    run(['git', 'rev-parse', '--abbrev-ref', 'HEAD']),
-    run(['git', 'log', '-1', '--format=%ct']),
-    run(['git', 'status', '--porcelain']),
+    $.process.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], { timeoutMs: 5000 }).catch(() => null),
+    $.process.run(['git', 'log', '-1', '--format=%ct'], { timeoutMs: 5000 }).catch(() => null),
+    $.process.run(['git', 'status', '--porcelain'], { timeoutMs: 5000 }).catch(() => null),
   ])
   const isRepo = head?.exitCode === 0
   const committedAt = Number(log?.stdout.trim())
@@ -358,9 +357,13 @@ export const register: Register = (on, options) => {
     return done
   })
 
-  on('tool.check', async ($, e, next) => {
-    const verdict = await next(e)
-    if (e.tool_use_id) {
+  // Observes the verdict for the gate tally; the answer passed on is next(e)'s own, unchanged.
+  on('tool.check', ($, e, next) => {
+    const answer = next(e)
+    void answer.then(verdict => noteCheck(verdict)).catch(() => undefined)
+    return answer
+    async function noteCheck(verdict: Awaited<typeof answer>) {
+      if (!e.tool_use_id) return
       const check: Check = {
         id: e.tool_use_id,
         tool: e.tool,
@@ -373,7 +376,6 @@ export const register: Register = (on, options) => {
       await update($, gateAtom, g => recordCheck(normalizeGate(g), check))
       if (verdict.decision === 'deny') await say($, 'gate', `denied by rule · ${check.detail}`, 'error')
     }
-    return verdict
   })
 
   on('tool.call', async ($, e, next) => {

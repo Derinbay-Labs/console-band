@@ -1,0 +1,44 @@
+{
+  "name": "console-band",
+  "version": "0.1.0",
+  "description": "Multi-line console band above the prompt: env, context breakdown, session/weekly limits, cache countdown, git.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "brand": {
+      "type": "string",
+      "title": "Brand",
+      "description": "Name drawn in the header rule.",
+      "default": "console-band"
+    },
+    "cacheTtlMinutes": {
+      "type": "number",
+      "title": "Prompt cache TTL (minutes)",
+      "description": "How long the prompt cache stays warm after a turn; 60 for a 1-hour cache, 5 for the default.",
+      "default": 5
+    },
+    "city": {
+      "type": "string",
+      "title": "City",
+      "description": "Shown on the LOC row. Empty hides it.",
+      "default": ""
+    },
+    "latitude": {
+      "type": "string",
+      "title": "Latitude",
+      "description": "With longitude, enables the weather from open-meteo.com. Empty disables it.",
+      "default": ""
+    },
+    "longitude": {
+      "type": "string",
+      "title": "Longitude",
+      "description": "With latitude, enables the weather from open-meteo.com.",
+      "default": ""
+    }
+  },
+  "author": {
+    "name": "Derinbay Labs"
+  },
+  "homepage": "https://github.com/Derinbay-Labs/console-band",
+  "repository": "https://github.com/Derinbay-Labs/console-band",
+  "license": "MIT"
+}

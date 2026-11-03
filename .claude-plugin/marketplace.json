@@ -1,0 +1,14 @@
+{
+  "name": "console-band",
+  "owner": {
+    "name": "Derinbay Labs"
+  },
+  "description": "Derinbay Labs Claude Code mods: console-band.",
+  "plugins": [
+    {
+      "name": "console-band",
+      "source": "./",
+      "description": "Multi-line console band above the prompt: env, context breakdown, session/weekly limits, cache countdown, git."
+    }
+  ]
+}

@@ -60,7 +60,7 @@ const CATEGORIES: [RegExp, string, string][] = [
   [/^messages/i, 'msgs', C.purple],
 ]
 
-export const fmtTokens = (n: number): string => {
+export const fmtCount = (n: number): string => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 10_000) return `${Math.round(n / 1000)}k`
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
@@ -551,13 +551,13 @@ export const register: Register = (on, options) => {
       const spans: Span[] = [
         { text: ' '.repeat(LABEL) },
         { text: 'tooling ', color: C.grey },
-        { text: fmtTokens(tooling), color: C.teal, bold: true },
+        { text: fmtCount(tooling), color: C.teal, bold: true },
         { text: ' · ', color: C.dim },
         { text: `${Math.round((tooling / usage.window) * 100)}%`, color: C.teal, bold: true },
         sep,
       ]
       for (const s of usage.segments) {
-        spans.push({ text: '━ ', color: s.color }, { text: `${s.label} `, color: C.grey }, { text: `${fmtTokens(s.tokens)}  `, color: C.text })
+        spans.push({ text: '━ ', color: s.color }, { text: `${s.label} `, color: C.grey }, { text: `${fmtCount(s.tokens)}  `, color: C.text })
       }
       return spans
     }
@@ -735,7 +735,7 @@ export const register: Register = (on, options) => {
         { text: shorten(c.description || c.type, 34).padEnd(35), color: C.text },
         { text: `${shorten(c.type, 18)} · ${prettyModel(c.model)}`, color: C.blue },
         sep,
-        { text: `ctx ${fmtTokens(c.ctx)} · out ${fmtTokens(c.out)} · ${c.steps} req`, color: C.grey },
+        { text: `ctx ${fmtCount(c.ctx)} · out ${fmtCount(c.out)} · ${c.steps} req`, color: C.grey },
         sep,
         { text: fmtTimer((c.endedAt ?? now) - c.spawnedAt), color: c.status === 'running' ? C.orange : C.grey },
       ]

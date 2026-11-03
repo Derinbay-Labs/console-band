@@ -7,7 +7,7 @@ import {
   adviceLine, afterCall, applyStep, bucketOf, bucketTotal, describeInput, endConsult, fmtSpan, fmtTime,
   fmtTimer, fmtUsd, gateSummary, handbackOf, isAdvising, listOf, momentOf, newCard, normalize,
   normalizeArchitect, normalizeGate, pacePercent, plural, prettyModel, promptLine, receiptOf, recordCheck,
-  settleCheck, shorten, startConsult,
+  shorten, startConsult,
 } from './core'
 
 const usageAtom = atom({ plugin: 'console-band', key: 'usage' } as const, null)
@@ -175,7 +175,6 @@ type ServerBlock = { type: string; id?: string; name?: string; tool_use_id?: str
 
 const getCards = async ($: EngineInterface) => listOf<AgentCard>(await read($, agentsAtom)).map(c => newCard(c))
 const getArchitect = async ($: EngineInterface) => normalizeArchitect(await read($, architectAtom))
-const getGate = async ($: EngineInterface) => normalizeGate(await read($, gateAtom))
 
 async function say($: EngineInterface, who: string, text: string, kind: LogLine['kind'] = 'info') {
   const line: LogLine = { at: await $.clock.now(), who, text, kind }
@@ -251,8 +250,6 @@ export const register: Register = (on, options) => {
   const city = opt(options, 'city')
   const lat = opt(options, 'latitude')
   const lon = opt(options, 'longitude')
-  // tool.check carries no loop id; the tool.call around it does, keyed by the call's id.
-  const callLoop = new Map<string, string | null>()
 
   on('session.start', async ($, e, next) => {
     for (const t of timers) t.cancel()
@@ -357,33 +354,23 @@ export const register: Register = (on, options) => {
     return done
   })
 
-  // Observes the verdict for the gate tally; the answer passed on is next(e)'s own, unchanged.
-  on('tool.check', ($, e, next) => {
-    const answer = next(e)
-    void answer.then(verdict => noteCheck(verdict)).catch(() => undefined)
-    return answer
-    async function noteCheck(verdict: Awaited<typeof answer>) {
-      if (!e.tool_use_id) return
+  on('tool.call', async ($, e, next) => {
+    const ran = await next(e)
+    const didRun = ran.deny === undefined
+    // The gate tally reads what became of each call: it ran, or something refused it.
+    if (String(e.tool) !== 'SubagentHandback') {
       const check: Check = {
         id: e.tool_use_id,
         tool: e.tool,
         bucket: bucketOf(e.tool),
-        verdict: verdict.decision === 'allow' ? 'rule' : verdict.decision,
-        inSubagent: Boolean(callLoop.get(e.tool_use_id)),
-        detail: shorten(describeInput(e.tool, e.input), 90),
+        verdict: didRun ? 'rule' : 'deny',
+        inSubagent: Boolean(e.agentId),
+        detail: shorten(describeInput(e.tool, e), 90),
         at: await $.clock.now(),
       }
       await update($, gateAtom, g => recordCheck(normalizeGate(g), check))
-      if (verdict.decision === 'deny') await say($, 'gate', `denied by rule · ${check.detail}`, 'error')
+      if (!didRun) await say($, 'gate', `denied · ${check.detail}`, 'error')
     }
-  })
-
-  on('tool.call', async ($, e, next) => {
-    callLoop.set(e.tool_use_id, e.agentId ?? null)
-    const ran = await next(e).finally(() => callLoop.delete(e.tool_use_id))
-    const didRun = ran.deny === undefined
-    const g0 = await getGate($)
-    if (settleCheck(g0, e.tool_use_id, didRun) !== g0) await update($, gateAtom, g => settleCheck(normalizeGate(g), e.tool_use_id, didRun))
     // A background agent hands its report back through this tool; an architect's report is its advice.
     if (String(e.tool) === 'SubagentHandback') {
       const message = (e as unknown as { message?: unknown }).message

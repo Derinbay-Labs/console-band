@@ -61,8 +61,7 @@ answers for the engine.
 
 | Hook | What it does |
 |---|---|
-| `tool.check` | Records the permission verdict the engine reached (allowed by rule, asked, denied) for the gate tally. It never changes or makes the decision. |
-| `tool.call` | Counts edits and errors for the turn receipt and settles an asked permission as cleared or denied. The call and its result pass through unchanged. |
+| `tool.call` | After the call settles, records whether it ran or was refused (the gate tally), and counts edits and errors for the turn receipt. The call and its result pass through unchanged; the mod takes no part in permission decisions. |
 | `prompt.submit` | Marks the session as working so the band animates. |
 | `classic.UserPromptSubmit` | Reads the current permission mode to show on the band. |
 | `agent.offer` | Notes which advisor or architect agent types exist, to label their consults. |

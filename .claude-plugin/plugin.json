@@ -40,5 +40,7 @@
   },
   "homepage": "https://github.com/Derinbay-Labs/console-band",
   "repository": "https://github.com/Derinbay-Labs/console-band",
+  "supportUrl": "https://github.com/Derinbay-Labs/console-band/issues",
+  "documentationUrl": "https://github.com/Derinbay-Labs/console-band#readme",
   "license": "MIT"
 }

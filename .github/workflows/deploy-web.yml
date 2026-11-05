@@ -77,8 +77,12 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
         run: |
-          npx --yes "firebase-tools@$FIREBASE_TOOLS_VERSION" hosting:channel:deploy "$CHANNEL" \
-            --project "$PROJECT" --only "$HOSTING_SITE" --expires "$CHANNEL_TTL" --json > "$RUNNER_TEMP/channel.json"
+          if ! npx --yes "firebase-tools@$FIREBASE_TOOLS_VERSION" hosting:channel:deploy "$CHANNEL" \
+            --project "$PROJECT" --only "$HOSTING_SITE" --expires "$CHANNEL_TTL" --json > "$RUNNER_TEMP/channel.json" 2> "$RUNNER_TEMP/channel.err"; then
+            echo "::error::firebase channel deploy failed"
+            cat "$RUNNER_TEMP/channel.json" "$RUNNER_TEMP/channel.err"
+            exit 1
+          fi
           url=$(jq -r --arg s "$HOSTING_SITE" '.result[$s].url' "$RUNNER_TEMP/channel.json")
           [ -n "$url" ] && [ "$url" != null ] || { echo "::error::no channel URL in firebase output"; exit 1; }
           echo "PREVIEW_URL=$url" >> "$GITHUB_ENV"

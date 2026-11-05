@@ -1,8 +1,11 @@
 # console-band landing: three designs on Studio Sweep
 
-Design sub-issue of #1 (Refs #2). Each option takes the CEO-chosen Labs landing base, Studio Sweep
+**Chosen: Option 2, Prompt Line** (CEO, 2026-11-06, #2). The landing (#4) is built from
+[option-2.md](option-2.md) and [mockups/option-2.html](mockups/option-2.html).
+
+Design sub-issue of #1 (#2). Each option takes the CEO-chosen Labs landing base, Studio Sweep
 (company `docs/design/labs-landing-base/option-2.md`), and customises it for console-band. The
-CEO picks one option. Nothing is built until then.
+CEO picked Option 2.
 
 ## What every option shares (fixed by the base)
 
@@ -38,7 +41,7 @@ close-ups.
 | Strength | Closest to the base; shows the whole band in a real session | The most product-specific hero; the install is part of the picture | Shows the plugin's adaptive layout, its least obvious feature |
 | Risk | The most conventional of the three | Band rows go compact and less legible on phones; the dark CTA inside the terminal departs from the base's light command block | Leads with limits; the wide terminal scrolls sideways on phones |
 
-## Recommended default: Option 1, Control Room
+## Designer's recommendation before the pick: Option 1, Control Room
 
 It changes the base least and so carries the least risk. It shows the real band in a believable
 session, with the transcript above it and the prompt below. Its three close-ups cover the

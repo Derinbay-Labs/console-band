@@ -3,7 +3,7 @@ import { Nav } from "@/components/Nav";
 import { Faq, Features, Final, Footer, Hero, How, Privacy, Spec } from "@/components/Sections";
 import { copyFor } from "@/content";
 import { localeFrom } from "@/lib/locale";
-import { metadataFor } from "@/lib/seo";
+import { jsonLdFor, jsonLdScript, metadataFor } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -14,9 +14,15 @@ export async function generateMetadata({
 }
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
-  const t = copyFor(await localeFrom(params));
+  const locale = await localeFrom(params);
+  const t = copyFor(locale);
   return (
     <>
+      <script
+        type="application/ld+json"
+        // JSON-LD is a data block, not executed script; jsonLdScript escapes "<".
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLdFor(locale)) }}
+      />
       <Nav t={t} />
       <main id="main">
         <Hero t={t} />

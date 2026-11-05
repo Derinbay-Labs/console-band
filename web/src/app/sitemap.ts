@@ -1,12 +1,10 @@
 import type { MetadataRoute } from "next";
-import { LOCALES, SITE_URL, pathFor } from "@/lib/locale";
+import { LOCALES } from "@/lib/locale";
+import { hreflangs, pageUrl } from "@/lib/seo";
 
 export const dynamic = "force-static";
 
+/** The two locale pages, each with the full `en`/`tr`/`x-default` set (docs/seo/landing.md §7). */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const languages = Object.fromEntries(LOCALES.map((l) => [l, `${SITE_URL}${pathFor(l)}`]));
-  return LOCALES.map((l) => ({
-    url: `${SITE_URL}${pathFor(l)}`,
-    alternates: { languages },
-  }));
+  return LOCALES.map((l) => ({ url: pageUrl(l), alternates: { languages: hreflangs() } }));
 }

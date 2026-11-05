@@ -15,7 +15,6 @@ import {
   pathFor,
   preferredLocale,
 } from "./locale";
-import { metadataFor } from "./seo";
 
 describe("locale helpers", () => {
   it("knows its locales and paths", () => {
@@ -36,14 +35,5 @@ describe("locale helpers", () => {
     expect(preferredLocale(["tr-TR", "en"])).toBe("tr");
     expect(preferredLocale(["en-US", "tr"])).toBe("en");
     expect(preferredLocale([])).toBe("en");
-  });
-});
-
-describe("metadataFor", () => {
-  it("sets canonical, hreflang pairs and x-default", () => {
-    const m = metadataFor("tr");
-    expect(m.alternates?.canonical).toBe("/tr/");
-    expect(m.alternates?.languages).toEqual({ en: "/en/", tr: "/tr/", "x-default": "/en/" });
-    expect(String(m.title).length).toBeGreaterThan(0);
   });
 });

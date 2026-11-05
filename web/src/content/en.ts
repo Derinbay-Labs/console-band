@@ -119,7 +119,9 @@ export const en: Copy = {
   copyright: "© 2026 Derinbay Labs",
   footNote: "Portions adapted from claude-flightdeck (MIT).",
   footNav: "Footer",
-  title: "console-band: everything above the prompt",
+  title: "console-band: Claude Code status line | Derinbay Labs",
+  ogAlt:
+    "The console-band status band above a Claude Code prompt, with the install command on the prompt line.",
   h1: "Everything above the prompt.",
   lead: "A multi-line band that shows what your Claude Code session is using, how fast, and what is running, right where you type.",
   scenes: [
@@ -171,5 +173,5 @@ export const en: Copy = {
   ],
   skip: "Skip to content",
   description:
-    "A multi-line status band above the Claude Code prompt: context, session and weekly limits, cache countdown, subagents and git. Free, MIT licensed.",
+    "A Claude Code plugin that adds a multi-line band above the prompt: context breakdown, session and weekly limits with pace, cache countdown, git.",
 };

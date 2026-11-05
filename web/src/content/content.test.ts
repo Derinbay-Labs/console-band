@@ -24,7 +24,10 @@ describe("copy", () => {
       }
     }
   });
-  it("keeps the descriptions SERP-sized", () => {
-    for (const t of [en, tr]) expect(t.description.length).toBeLessThanOrEqual(170);
+  it("keeps titles and descriptions SERP-sized (docs/seo/landing.md §3)", () => {
+    for (const t of [en, tr]) {
+      expect(t.title.length).toBeLessThanOrEqual(60);
+      expect(t.description.length).toBeLessThanOrEqual(155);
+    }
   });
 });

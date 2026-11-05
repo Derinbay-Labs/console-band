@@ -561,6 +561,10 @@ svg.i {
   color: var(--k-text);
   font-weight: 500;
 }
+/* Reserve the compact band's 5 rows (1.5em each) so hydration cannot move what follows. */
+.band-box {
+  min-height: 7.5em;
+}
 .band {
   margin: 0;
   font: inherit;

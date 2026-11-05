@@ -3,7 +3,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { clip, fitCols, rowsFor, type RowOptions, type SceneName } from "@/lib/band";
 
-const DEFAULT_COLS = 100;
+// The pre-rendered band uses the compact layout (5 rows), which is what every screen up to
+// the widest stage measures to, so the hydrated band never changes the page height.
+const DEFAULT_COLS = 60;
 const FALLBACK_CHAR_WIDTH = 7.8;
 const widths = new Map<string, number>();
 
@@ -78,7 +80,7 @@ export function Band({ scene, className, lit = null, onCols, ...options }: BandP
   );
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={`band-box${className ? ` ${className}` : ""}`}>
       <pre className={`band${lit ? " has-lit" : ""}`} aria-hidden="true">
         {rows.map((r) => (
           <span key={r.k} className={`r${lit?.includes(r.hl) ? " is-lit" : ""}`}>

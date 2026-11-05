@@ -80,4 +80,24 @@ test.describe("landing smoke", () => {
     expect(external).toEqual([]);
     expect(await context.cookies()).toEqual([]);
   });
+
+  test("mobile layout shift stays within budget", async ({ page }, info) => {
+    test.skip(info.project.name !== "mobile-390", "layout shift budget is asserted at 390x844");
+    await page.addInitScript(() => {
+      (window as unknown as { __cls: number }).__cls = 0;
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries() as unknown as {
+          value: number;
+          hadRecentInput: boolean;
+        }[])
+          if (!e.hadRecentInput) (window as unknown as { __cls: number }).__cls += e.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await page.goto("/en/");
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(500);
+    const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+    expect(cls).toBeLessThanOrEqual(0.1);
+  });
 });

@@ -1,0 +1,4 @@
+{
+  // Design docs: long table rows and links are expected (matches the company repo rule set).
+  "config": { "MD013": false, "MD060": false }
+}

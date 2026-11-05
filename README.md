@@ -71,10 +71,15 @@ answers for the engine.
 
 ## Development
 
+The plugin lives in `plugin/`; the repo root also holds the landing (`web/`), docs and the
+marketplace file `.claude-plugin/marketplace.json` (`source: ./plugin`), so an install ships only
+`plugin/`.
+
 ```
-claude --plugin-dir .
+claude --plugin-dir plugin
 claude plugin validate .
-claude plugin test .
+claude plugin validate plugin
+claude plugin test plugin
 ```
 
 ## License

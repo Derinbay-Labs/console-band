@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - 'web/**'
+      - 'plugin/.claude-plugin/plugin.json'
       - 'firebase.json'
       - '.github/workflows/web.yml'
       - '.github/workflows/deploy-web.yml'
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - 'web/**'
+      - 'plugin/.claude-plugin/plugin.json'
       - 'firebase.json'
       - '.github/workflows/web.yml'
       - '.github/workflows/deploy-web.yml'

@@ -11,8 +11,8 @@ const HOST = "https://console-band.derinbay.com";
 
 function manifestDir(body: string): string {
   const root = mkdtempSync(join(tmpdir(), "cb-seo-"));
-  mkdirSync(join(root, ".claude-plugin"));
-  writeFileSync(join(root, ".claude-plugin", "plugin.json"), body);
+  mkdirSync(join(root, "plugin", ".claude-plugin"), { recursive: true });
+  writeFileSync(join(root, "plugin", ".claude-plugin", "plugin.json"), body);
   return root;
 }
 

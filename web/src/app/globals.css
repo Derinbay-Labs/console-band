@@ -79,7 +79,7 @@
   --wrap: 1240px;
   --pad: clamp(20px, 4vw, 48px);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  /* console-band's own terminal colours (hooks/register.tsx), fixed in both themes */
+  /* console-band's own terminal colours (plugin/hooks/register.tsx), fixed in both themes */
   --k-teal: #4aa3b8;
   --k-orange: #e8734a;
   --k-green: #3ec28f;

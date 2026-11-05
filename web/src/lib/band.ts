@@ -1,4 +1,4 @@
-// Band engine: a port of the ui.render layout in the plugin's hooks/register.tsx, fed with
+// Band engine: a port of the ui.render layout in the plugin's plugin/hooks/register.tsx, fed with
 // synthetic sample sessions. Pure functions, no DOM, so the layout is unit-testable.
 
 export type Tone = "t" | "o" | "gr" | "y" | "r" | "p" | "b" | "g" | "d" | "x" | "cl";

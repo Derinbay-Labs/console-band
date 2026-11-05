@@ -33,13 +33,13 @@ export function hreflangs(): Record<string, string> {
   return languages;
 }
 
-/** The plugin's released version, read from `.claude-plugin/plugin.json` at build time. */
+/** The plugin's released version, read from `plugin/.claude-plugin/plugin.json` at build time. */
 export function pluginVersion(root: string = join(process.cwd(), "..")): string {
   const manifest = JSON.parse(
-    readFileSync(join(root, ".claude-plugin", "plugin.json"), "utf8"),
+    readFileSync(join(root, "plugin", ".claude-plugin", "plugin.json"), "utf8"),
   ) as { version?: unknown };
   if (typeof manifest.version !== "string" || manifest.version === "") {
-    throw new Error(".claude-plugin/plugin.json has no version");
+    throw new Error("plugin/.claude-plugin/plugin.json has no version");
   }
   return manifest.version;
 }

@@ -1,0 +1,15 @@
+{
+  // Editor config only; CI does not typecheck the plugin. `claude-code` and `claude-code/testing`
+  // exist only inside the host (Claude Code), so `tsc --noEmit` reports them as missing here.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["hooks", "types", "tests"]
+}

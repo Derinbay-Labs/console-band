@@ -16,7 +16,7 @@ CEO picked Option 2.
 - The Labs nameplate appears only in the footer, as the large variant (CEO decision, company
   #539). Nothing in the hero carries it.
 - Palettes stay in the blue family. The terminal stays dark in both themes because console-band's
-  own band colours are fixed: they come from the plugin's `hooks/register.tsx` and are drawn
+  own band colours are fixed: they come from the plugin's `plugin/hooks/register.tsx` and are drawn
   as-is.
 - The band is rendered from a port of the plugin's layout logic, with synthetic sample data, at
   the column count that fits its container. So on a phone it goes compact, just as the real band

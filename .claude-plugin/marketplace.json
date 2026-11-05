@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "console-band",
-      "source": "./",
+      "source": "./plugin",
       "description": "Multi-line console band above the prompt: env, context breakdown, session/weekly limits, cache countdown, git."
     }
   ]

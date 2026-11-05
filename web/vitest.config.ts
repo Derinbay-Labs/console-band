@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  // An explicit alias: tsconfigPaths would also scan the plugin's own root tsconfig.json.
+  // An explicit alias: tsconfigPaths would also scan the plugin's own plugin/tsconfig.json.
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
     environment: "jsdom",

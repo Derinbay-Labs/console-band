@@ -1,3 +1,13 @@
 .DS_Store
 *.log
 .mcpb-cache/
+
+# web/ landing (ADR 0001)
+web/node_modules/
+web/.next/
+web/out/
+web/coverage/
+web/playwright-report/
+web/test-results/
+web/next-env.d.ts
+web/*.tsbuildinfo

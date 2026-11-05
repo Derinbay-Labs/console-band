@@ -1,0 +1,69 @@
+name: Web
+
+# Next.js static-export CI for the landing in web/. Runs on GitHub-hosted runners
+# (ADR 0001, decision #7). No secrets, no id-token and never pull_request_target:
+# this workflow also runs for fork PRs.
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'firebase.json'
+      - '.github/workflows/web.yml'
+      - '.github/workflows/deploy-web.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'firebase.json'
+      - '.github/workflows/web.yml'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+    working-directory: web
+
+jobs:
+  web:
+    name: Lint, typecheck, test, build, e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.13.0'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Static export has both locales
+        run: test -f out/en/index.html && test -f out/tr/index.html
+
+      - name: Module JS within the 150 KB gzip budget
+        run: npm run check:size
+
+      # e2e serves the export built above (playwright.config.ts runs scripts/serve-out.mjs
+      # on PLAYWRIGHT_PORT); bind port 0 so the port is run-scoped.
+      - name: Choose a run-scoped port
+        run: |
+          port="$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close(()=>process.exit(0));});")"
+          echo "PLAYWRIGHT_PORT=$port" >> "$GITHUB_ENV"
+
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

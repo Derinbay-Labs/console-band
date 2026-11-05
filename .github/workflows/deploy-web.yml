@@ -1,0 +1,120 @@
+name: Deploy Web
+
+# CD for the landing (ADR 0001): after a green Web CI run on main, build the static
+# export, publish it to the Firebase Hosting preview channel, smoke it, then promote
+# that exact version to live with hosting:clone, so live is never a separate build.
+# Keyless WIF with repository variables only. workflow_dispatch redeploys main by hand.
+
+on:
+  workflow_run:
+    workflows: [Web]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CHANNEL: preview
+  CHANNEL_TTL: 7d
+  HOSTING_SITE: console-band-derinbay
+  FIREBASE_TOOLS_VERSION: 15.35.0
+
+jobs:
+  deploy:
+    name: Build, publish preview and promote to live
+    # A fork branch named main must not deploy: only pushes to this repository.
+    # A manual run deploys only main: another branch has had no review and no green CI.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      LIVE_DOMAIN: ${{ vars.LIVE_DOMAIN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SHA }}
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        id: auth
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+          create_credentials_file: true
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.13.0'
+
+      - name: Build the static export
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          test -f out/en/index.html && test -f out/tr/index.html
+
+      - name: Publish to the preview channel
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          npx --yes "firebase-tools@$FIREBASE_TOOLS_VERSION" hosting:channel:deploy "$CHANNEL" \
+            --project "$PROJECT" --only "$HOSTING_SITE" --expires "$CHANNEL_TTL" --json > "$RUNNER_TEMP/channel.json"
+          url=$(jq -r --arg s "$HOSTING_SITE" '.result[$s].url' "$RUNNER_TEMP/channel.json")
+          [ -n "$url" ] && [ "$url" != null ] || { echo "::error::no channel URL in firebase output"; exit 1; }
+          echo "PREVIEW_URL=$url" >> "$GITHUB_ENV"
+          echo "::notice::preview channel $CHANNEL: $url"
+
+      - name: Smoke the preview
+        run: |
+          for p in en/ tr/ robots.txt sitemap.xml; do
+            code=000
+            for _ in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$PREVIEW_URL/$p" || true)
+              [ "$code" = 200 ] && break
+              sleep 10
+            done
+            [ "$code" = 200 ] || { echo "::error::$PREVIEW_URL/$p returned $code"; exit 1; }
+          done
+
+      - name: Promote the preview version to live
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          npx --yes "firebase-tools@$FIREBASE_TOOLS_VERSION" hosting:clone "$HOSTING_SITE:$CHANNEL" "$HOSTING_SITE:live" \
+            --project "$PROJECT" --non-interactive
+
+      - name: Smoke live
+        run: |
+          hosts="console-band-derinbay.web.app"
+          [ -z "$LIVE_DOMAIN" ] || hosts="$hosts $LIVE_DOMAIN"
+          for h in $hosts; do
+            for p in en/ tr/ robots.txt sitemap.xml; do
+              code=000
+              for _ in 1 2 3 4 5 6; do
+                code=$(curl -s -o /dev/null -w '%{http_code}' "https://$h/$p" || true)
+                [ "$code" = 200 ] && break
+                sleep 10
+              done
+              [ "$code" = 200 ] || { echo "::error::https://$h/$p returned $code"; exit 1; }
+            done
+          done

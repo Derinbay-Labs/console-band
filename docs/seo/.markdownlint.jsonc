@@ -1,0 +1,6 @@
+// Same taste rules as the company repo's .markdownlint-cli2.jsonc: line length and
+// table pipe padding are off because tables, URLs and code examples run long.
+{
+  "MD013": false,
+  "MD060": false
+}

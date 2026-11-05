@@ -55,6 +55,9 @@ jobs:
       - name: Static export has both locales
         run: test -f out/en/index.html && test -f out/tr/index.html
 
+      - name: Module JS within the 150 KB gzip budget
+        run: npm run check:size
+
       # e2e serves the export built above (playwright.config.ts runs scripts/serve-out.mjs
       # on PLAYWRIGHT_PORT); bind port 0 so the port is run-scoped.
       - name: Choose a run-scoped port

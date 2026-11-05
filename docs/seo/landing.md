@@ -197,10 +197,12 @@ Mobile, Lighthouse default throttling, on each locale page:
 | LCP | ≤ 2.5 s |
 | CLS | ≤ 0.1 |
 | TBT | ≤ 200 ms |
-| JavaScript, first load, compressed | ≤ 120 KB |
+| JavaScript, first load, compressed (module scripts; the noModule polyfill modern browsers skip is excluded) | ≤ 150 KB |
 | Fonts, total, WOFF2, self-hosted | ≤ 150 KB, Latin plus Turkish glyphs only |
 | Total transfer, first load | ≤ 500 KB |
 | Third-party requests | 0 |
+
+Raised from 120 KB in PR #10: react-dom plus the Next App Router runtime alone is ~120 KB gzip.
 
 Build requirements that keep the budget:
 

@@ -96,7 +96,9 @@ except where the public repository makes the default unsafe.
      attribute condition is
      `assertion.repository == 'Derinbay-Labs/console-band' &&
      assertion.ref == 'refs/heads/main'`. The deploy service account holds
-     only `roles/firebasehosting.admin` on the project.
+     only `roles/firebasehosting.admin` and
+     `roles/serviceusage.serviceUsageConsumer` (firebase-tools needs
+     `serviceusage.services.use` to call the Hosting API) on the project.
   3. Build the export at the run's head SHA and assert both locale files.
   4. Publish to preview channel `preview` (`--expires 7d`) and smoke
      `/en/`, `/tr/`, `/robots.txt` and `/sitemap.xml` for HTTP 200

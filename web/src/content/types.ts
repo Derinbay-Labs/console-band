@@ -19,8 +19,12 @@ export type SceneId = "session" | "usage" | "work" | "place";
 
 export interface Copy {
   lang: Lang;
+  /** `<title>`, ≤ 60 characters (docs/seo/landing.md §3). */
   title: string;
+  /** Meta, OG and Twitter description, ≤ 155 characters. */
   description: string;
+  /** `og:image:alt` and `twitter:image:alt`. */
+  ogAlt: string;
   skip: string;
   nav: [string, string][];
   navcta: string;

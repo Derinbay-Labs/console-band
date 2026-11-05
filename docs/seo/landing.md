@@ -148,9 +148,12 @@ and `description` to the TR meta description.
   line in `--term-accent` `#5FC1EC`. The wordmark "console-band" is in the image; the Labs
   nameplate is not (footer only, CEO decision on company#539).
 - Text stays inside a 1080 × 510 safe area centred in the frame, no text smaller than 28 px,
-  so crops to 1.91:1 and 2:1 keep the headline.
+  so crops to 1.91:1 and 2:1 keep the headline. The full band cannot be legible at 28 px in
+  this frame, so its rows are illustration and exempt; the wordmark, H1 and install command
+  meet the minimum.
 - Rendered once from the built page with the bundled sample data and committed as static
-  files; no runtime image generation.
+  files; no runtime image generation. `web/scripts/render-og.mjs` re-renders both after
+  `npm run build`.
 
 ## 7. Sitemap and robots
 

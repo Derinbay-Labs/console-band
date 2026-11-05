@@ -122,7 +122,9 @@ export const tr: Copy = {
   copyright: "© 2026 Derinbay Labs",
   footNote: "Bazı bölümler claude-flightdeck’ten (MIT) uyarlanmıştır.",
   footNav: "Alt bilgi",
-  title: "console-band: istemin üstünde her şey",
+  title: "console-band: Claude Code durum satırı | Derinbay Labs",
+  ogAlt:
+    "Claude Code isteminin üstünde console-band durum bandı ve istem satırında kurulum komutu.",
   h1: "İstemin üstünde, her şey.",
   lead: "Claude Code oturumunuzun neyi, ne hızla kullandığını ve neyin çalıştığını, tam yazdığınız yerde gösteren çok satırlı bir bant.",
   scenes: [
@@ -174,5 +176,5 @@ export const tr: Copy = {
   ],
   skip: "İçeriğe geç",
   description:
-    "Claude Code isteminin üstünde çok satırlı bir durum bandı: bağlam, oturum ve haftalık limitler, önbellek geri sayımı, alt ajanlar ve git. Ücretsiz, MIT lisanslı.",
+    "Claude Code eklentisi: istemin üstünde çok satırlı bant. Bağlam dökümü, oturum ve haftalık limitler, önbellek geri sayımı, git ve alt ajanlar.",
 };

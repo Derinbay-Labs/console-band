@@ -110,7 +110,7 @@ and `description` to the TR meta description.
       "applicationCategory": "DeveloperApplication",
       "applicationSubCategory": "Claude Code plugin",
       "operatingSystem": "Claude Code",
-      "softwareVersion": "<version from .claude-plugin/plugin.json>",
+      "softwareVersion": "<version from plugin/.claude-plugin/plugin.json>",
       "license": "https://github.com/Derinbay-Labs/console-band/blob/main/LICENSE",
       "isAccessibleForFree": true,
       "installUrl": "https://github.com/Derinbay-Labs/console-band#install",
@@ -129,7 +129,7 @@ and `description` to the TR meta description.
 }
 ```
 
-- `softwareVersion` is read from `.claude-plugin/plugin.json` at build time, never typed by
+- `softwareVersion` is read from `plugin/.claude-plugin/plugin.json` at build time, never typed by
   hand, so the page cannot drift from the release.
 - No `aggregateRating` or `review`: there are none, and inventing them breaks Google's
   structured-data policy. Google's Rich Results Test therefore reports the `SoftwareApplication`

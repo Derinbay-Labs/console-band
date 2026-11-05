@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>console-band · Option 3: Width Sweep</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@500..800&family=Funnel+Sans:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap" rel="stylesheet">
+<style>
+/* ---------- Family tokens (identical on every Labs product) ---------- */
+:root{
+  color-scheme: light dark;
+  --font-display:"Funnel Display", ui-sans-serif, system-ui, sans-serif;
+  --font-text:"Funnel Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --lab-ink: light-dark(#121A2B, #E9EEF6);
+  --lab-paper: light-dark(#FFFFFF, #1A2130);
+  --lab-line: light-dark(#C3CCD9, #38435A);
+  --lab-mut: light-dark(#4D5868, #A8B3C4);
+  --r-s: 8px; --r-m: 14px; --r-l: 22px;
+  --wrap: 1240px;
+  --pad: clamp(20px, 4vw, 48px);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  /* console-band's own terminal colours (hooks/register.tsx), fixed in both themes */
+  --k-teal:#4aa3b8; --k-orange:#e8734a; --k-green:#3ec28f; --k-yellow:#e5c07b; --k-red:#e05561;
+  --k-purple:#b48ead; --k-blue:#8fb3e8; --k-grey:#9aa0a6; --k-dim:#3a3f47; --k-text:#d8dee9; --k-cleared:#7f8cff;
+  --band-fs: 13px;
+}
+html[data-theme="light"]{color-scheme: light}
+html[data-theme="dark"]{color-scheme: dark}
+
+/* ---------- Product set: console-band, Option 3 "Width Sweep" (azure) ---------- */
+:root{
+  --ground: light-dark(#F6F8FE, #0B0E1A);
+  --wall: light-dark(#DCE5FB, #151D3A);
+  --floor: light-dark(#EEF2FD, #0F1529);
+  --surface: light-dark(#FFFFFF, #141A2E);
+  --surface-2: light-dark(#F1F4FD, #1B2340);
+  --ink: light-dark(#0F1630, #E7EAF7);
+  --mut: light-dark(#4A5272, #A6ADCB);
+  --line: light-dark(#D0D9F0, #283256);
+  --accent: light-dark(#2450C8, #9DB7FF);
+  --accent-ink: light-dark(#FFFFFF, #0A1433);
+  --accent-soft: light-dark(#E0E8FD, #1F2C58);
+  --term: light-dark(#0D1124, #080B18);
+  --term-bar: light-dark(#141A33, #0F1428);
+  --term-line: light-dark(#0D1124, #232C4E);
+  --shadow: light-dark(rgb(15 22 48 / .16), rgb(0 0 0 / .6));
+}
+/* Hero: headline and command left; the compact band in a narrow terminal right, on its own sweep */
+.o3-head{display:grid; grid-template-columns:minmax(0,6fr) minmax(0,5fr); gap:32px 56px; align-items:center; padding-block:clamp(36px, 5vw, 64px)}
+.hero h1{font-size:clamp(2.6rem, 1.5rem + 3.6vw, 4.5rem); line-height:1.02; letter-spacing:-.035em; font-weight:700; max-width:12ch}
+.o3-copy{display:grid; gap:22px}
+.o3-mini{border-radius:var(--r-l); background:linear-gradient(to bottom, var(--wall), var(--floor)); padding:clamp(24px, 4vw, 48px) clamp(16px, 3vw, 36px); display:grid; gap:14px; justify-items:center}
+.o3-mini .term{width:min(100%, 520px)}
+.o3-mini .cap{margin:0}
+.stage-grid{display:grid; gap:28px; grid-template-columns:minmax(0,1fr)}
+.device-wrap, .device{min-width:0}
+.scenes{justify-self:center}
+.o3-win{font-family:var(--font-mono); font-size:var(--band-fs); width:min(100%, calc(var(--cols) * 1ch + 38px)); margin-inline:auto; transition:width .6s var(--ease-out)}
+.o3-win .term-body{overflow-x:auto; scrollbar-width:thin}
+.o3-win .term-body [data-band]{overflow:visible}
+.o3-win .term-bar{font-family:var(--font-text)}
+.colsnote{font-family:var(--font-mono); color:var(--k-teal)}
+.notes{grid-template-columns:repeat(3, minmax(0,1fr)); margin-top:24px}
+.pace-legend{list-style:none; margin:18px 0 0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 20px; font-size:.9375rem}
+.pace-legend li{display:grid; grid-template-columns:44px 1fr; gap:10px; align-items:center}
+.pace-legend b{font-family:var(--font-mono); background:var(--term); border-radius:6px; text-align:center; padding:2px 0; font-weight:700}
+.tile.big{font-size:14px}
+@media (max-width: 860px){
+  .o3-head{grid-template-columns:1fr}
+  .scenes{justify-self:stretch}
+  .notes{grid-template-columns:1fr}
+  .pace-legend{grid-template-columns:1fr}
+}
+
+
+/* ---------- Base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth; scrollbar-color: var(--line) var(--ground); -webkit-text-size-adjust:100%}
+body{margin:0; background:var(--ground); color:var(--ink); font-family:var(--font-text); font-size:1.0625rem; line-height:1.55; caret-color:var(--accent); -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility}
+::selection{background:var(--accent); color:var(--accent-ink)}
+h1,h2,h3,h4{font-family:var(--font-display); margin:0; text-wrap:balance; font-weight:650}
+p{margin:0; text-wrap:pretty}
+a{color:inherit; text-underline-offset:.2em; text-decoration-thickness:1px}
+button{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:6px}
+code{font-family:var(--font-mono); font-size:.9em}
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+.wrap{max-width:var(--wrap); margin-inline:auto; padding-inline:var(--pad)}
+.skip{position:absolute; left:12px; top:-60px; z-index:50; background:var(--surface); padding:12px 16px; border-radius:var(--r-s)}
+.skip:focus{top:12px}
+svg.i{width:20px; height:20px; flex:none; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round}
+
+/* ---------- Demo shell bar (mockup only, not part of the page) ---------- */
+.shell{background:var(--lab-ink); color:var(--lab-paper); font-size:.875rem; padding-block:2px}
+.shell .wrap{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; justify-content:space-between; padding-block:8px}
+.shell-tag{font-weight:600}
+.seg{display:inline-flex; border:1px solid color-mix(in srgb, var(--lab-paper) 30%, transparent); border-radius:12px; padding:3px}
+.seg button{min-height:44px; min-width:44px; padding:0 14px; border:0; border-radius:9px; background:none; color:inherit; cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--lab-paper); color:var(--lab-ink); font-weight:600}
+.seg button:focus-visible{outline-color:var(--lab-paper)}
+
+/* ---------- Nav ---------- */
+.nav{position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--ground) 92%, transparent); backdrop-filter:saturate(1.2); border-bottom:1px solid transparent; transition:border-color .2s}
+.nav.scrolled{border-bottom-color:var(--line)}
+.nav .wrap{display:flex; align-items:center; gap:16px; min-height:72px}
+.brand{display:inline-flex; align-items:center; gap:10px; text-decoration:none; font-family:var(--font-display); font-weight:700; font-size:1.3125rem; letter-spacing:-.02em; min-height:44px}
+.brand svg{width:30px; height:30px; flex:none}
+.nav-links{display:flex; gap:2px; margin-left:auto}
+.nav-links a{display:inline-flex; align-items:center; min-height:44px; padding:0 12px; text-decoration:none; color:var(--mut); border-radius:8px}
+.nav-links a:hover{color:var(--ink); background:var(--surface-2)}
+.lang{display:inline-flex; border:1px solid var(--line); border-radius:12px; padding:2px}
+.lang button{min-width:44px; min-height:44px; border:0; background:none; border-radius:9px; color:var(--mut); cursor:pointer; font-weight:600; font-size:.875rem}
+.lang button[aria-pressed="true"]{background:var(--surface); color:var(--ink); box-shadow:0 1px 2px var(--shadow)}
+.icon-btn{display:inline-grid; place-items:center; width:44px; height:44px; border-radius:10px; color:var(--mut); text-decoration:none}
+.icon-btn:hover{color:var(--ink); background:var(--surface-2)}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; padding:0 20px; border-radius:12px; border:1px solid transparent; font-weight:600; text-decoration:none; cursor:pointer; white-space:nowrap; transition:background-color .15s, box-shadow .15s, transform .15s var(--ease-out)}
+.btn-primary{background:var(--accent); color:var(--accent-ink); box-shadow:0 1px 0 rgb(255 255 255 / .18) inset, 0 6px 16px -6px var(--shadow)}
+.btn-primary:hover{background:color-mix(in srgb, var(--accent) 88%, var(--ink))}
+.btn-primary:active{transform:translateY(1px)}
+.btn-ghost{border-color:var(--line); background:var(--surface); color:var(--ink)}
+.btn-ghost:hover{border-color:var(--mut)}
+.btn-sm{min-height:44px; padding:0 16px; font-size:.9375rem}
+
+/* ---------- Install command (the CTA) ---------- */
+.cta{display:grid; gap:12px}
+.cmd{display:flex; align-items:center; gap:10px; border:1px solid var(--line); background:var(--surface); border-radius:14px; padding:6px 6px 6px 16px; min-height:60px}
+.cmd code{flex:1; min-width:0; font-size:.9375rem; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; padding-block:6px}
+.cmd code::before{content:"> " / ""; color:var(--mut)}
+.cmd .btn{flex:none}
+.cta-row{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center}
+.cta-row .note{font-size:.875rem; color:var(--mut)}
+
+/* ---------- Terminal and band (the product) ---------- */
+.term{text-align:left; background:var(--term); color:var(--k-text); border-radius:14px; border:1px solid var(--term-line); overflow:hidden; box-shadow:0 2px 4px var(--shadow), 0 50px 80px -40px var(--shadow)}
+.term-bar{display:flex; align-items:center; gap:12px; height:40px; padding:0 14px; background:var(--term-bar); color:var(--k-grey); font-size:12.5px; border-bottom:1px solid var(--term-line)}
+.term-bar .dots{display:flex; gap:7px}
+.term-bar .dots i{width:11px; height:11px; border-radius:50%; background:#3a3f47}
+.term-bar .t{flex:1; text-align:center}
+.term-body{padding:16px 18px 16px; font-family:var(--font-mono); font-size:var(--band-fs); line-height:1.5}
+.ts{color:var(--k-grey); margin:0 0 12px; white-space:pre-wrap}
+.ts b{color:var(--k-text); font-weight:500}
+.band{margin:0; font:inherit; white-space:pre; overflow:hidden}
+.band .r{display:block; min-height:1.5em; border-radius:3px; transition:opacity .25s, background-color .25s}
+.band.has-lit .r:not(.is-lit){opacity:.3}
+.band .r.is-lit{background:rgb(255 255 255 / .07); box-shadow:-6px 0 0 rgb(255 255 255 / .07), 6px 0 0 rgb(255 255 255 / .07)}
+.k-t{color:var(--k-teal)} .k-o{color:var(--k-orange)} .k-gr{color:var(--k-green)} .k-y{color:var(--k-yellow)} .k-r{color:var(--k-red)}
+.k-p{color:var(--k-purple)} .k-b{color:var(--k-blue)} .k-g{color:var(--k-grey)} .k-d{color:var(--k-dim)} .k-x{color:var(--k-text)} .k-cl{color:var(--k-cleared)}
+.band .bo{font-weight:700}
+.prompt{margin-top:12px; display:flex; align-items:center; gap:10px; border:1px solid #3a3f47; border-radius:8px; padding:9px 12px; color:var(--k-grey); white-space:nowrap; overflow:hidden}
+.prompt .gt{color:var(--k-text)}
+.caret{display:inline-block; width:.6em; height:1.15em; background:var(--k-text); vertical-align:-3px; animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.tile{text-align:left; min-width:0; overflow:hidden; background:var(--term); border:1px solid var(--term-line); border-radius:12px; padding:14px 16px; font-family:var(--font-mono); font-size:12px; line-height:1.5; color:var(--k-text); box-shadow:0 1px 2px var(--shadow), 0 20px 36px -24px var(--shadow); width:100%}
+.tile + .cap, .cap{font-size:.8125rem; color:var(--mut); margin-top:10px; text-align:center}
+.tile-stack{display:grid; grid-template-columns:minmax(0,1fr); gap:10px; width:100%}
+.tl{display:flex; justify-content:space-between; gap:12px; font-family:var(--font-text); font-size:.8125rem; color:var(--k-grey); margin-bottom:4px}
+.tl b{color:var(--k-text); font-weight:600}
+
+.legend{list-style:none; margin:16px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px 16px; font-size:.875rem; color:var(--ink)}
+.legend li{display:inline-flex; align-items:center; gap:8px}
+.legend i{width:14px; height:4px; border-radius:2px; background:var(--sw)}
+.legend span{color:var(--mut); font-variant-numeric:tabular-nums}
+
+/* ---------- Stage (studio sweep) ---------- */
+.stage{position:relative; background:linear-gradient(to bottom, var(--wall) 0%, var(--wall) 52%, var(--floor) 80%, var(--ground) 100%); padding-block:clamp(28px, 4vw, 56px) clamp(64px, 7vw, 104px); overflow:hidden}
+.scenes{display:flex; gap:4px; background:color-mix(in srgb, var(--surface) 60%, transparent); border:1px solid var(--line); border-radius:14px; padding:4px; overflow-x:auto; scrollbar-width:none}
+.scene{flex:1 0 auto; display:grid; gap:0; min-height:48px; padding:6px 18px; border:1px solid transparent; border-radius:10px; background:none; cursor:pointer; color:var(--ink); text-align:center; place-content:center}
+.scene strong{font-family:var(--font-display); font-size:1rem; font-weight:650; letter-spacing:-.01em}
+.scene span{font-size:.8125rem; color:var(--mut)}
+.scene:hover{background:color-mix(in srgb, var(--surface) 55%, transparent)}
+.scene[aria-selected="true"]{background:var(--surface); border-color:var(--line); box-shadow:0 1px 2px var(--shadow), 0 10px 24px -14px var(--shadow)}
+.device-wrap{position:relative; margin:0; display:grid; justify-items:center}
+.device-wrap::after{content:""; position:absolute; left:12%; right:12%; bottom:-34px; height:44px; background:radial-gradient(closest-side, var(--shadow), transparent); z-index:0; pointer-events:none}
+.device{position:relative; z-index:1; width:100%; animation:settle 1.1s var(--ease-out) both}
+@keyframes settle{from{transform:translateY(-14px)}to{transform:none}}
+.synthetic{position:absolute; bottom:-32px; right:0; font-size:.8125rem; color:var(--mut); z-index:1}
+.notes{list-style:none; margin:0; padding:0; display:grid; gap:8px}
+.note-btn{display:flex; gap:12px; align-items:flex-start; width:100%; min-height:48px; padding:12px 14px; text-align:left; border:1px solid transparent; border-radius:12px; background:none; color:var(--ink); cursor:pointer; font-size:.9375rem; line-height:1.4}
+.note-btn .pin{display:grid; place-items:center; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--accent); color:var(--accent); flex:none; margin-top:-1px}
+.note-btn .pin::after{content:""; width:8px; height:8px; border-radius:50%; background:currentColor; transform:scale(.6); transition:transform .2s var(--ease-out)}
+.note-btn:hover, .note-btn[aria-pressed="true"]{background:color-mix(in srgb, var(--surface) 70%, transparent); border-color:var(--line)}
+.note-btn:hover .pin::after, .note-btn[aria-pressed="true"] .pin::after{transform:scale(1)}
+.note-btn b{display:block; font-weight:600; font-family:var(--font-mono); font-size:.8125rem; letter-spacing:.02em; color:var(--mut); margin-bottom:2px}
+
+/* ---------- Spec plate ---------- */
+.spec{position:relative; z-index:2; margin-top:-44px}
+.spec dl{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); margin:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); box-shadow:0 1px 2px var(--shadow), 0 24px 40px -30px var(--shadow)}
+.spec dl > div{padding:22px 24px; border-left:1px solid var(--line); display:grid; gap:4px; align-content:start}
+.spec dl > div:first-child{border-left:0}
+.spec dt{font-size:.875rem; color:var(--mut)}
+.spec dd{margin:0; font-family:var(--font-display); font-size:1.3125rem; font-weight:650; letter-spacing:-.015em; line-height:1.25}
+
+/* ---------- Sections ---------- */
+.section{padding-block:clamp(72px, 9vw, 128px)}
+.sec-head{display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:16px 56px; align-items:end; margin-bottom:clamp(32px, 4vw, 56px)}
+.sec-head h2, .trust h2{font-size:clamp(2rem, 1.3rem + 2.4vw, 3.25rem); line-height:1.05; letter-spacing:-.03em; font-weight:700}
+.sec-head p{color:var(--mut); max-width:44ch}
+.closeups{display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); grid-template-rows:auto auto; gap:24px}
+.cu{display:grid; gap:18px; align-content:start}
+.cu:first-child{grid-row:span 2}
+.plinth{position:relative; border-radius:var(--r-l); background:linear-gradient(to bottom, var(--wall), var(--floor)); padding:clamp(20px, 3.5vw, 44px); display:grid; place-items:center; min-height:240px; overflow:hidden}
+.cu:first-child .plinth{min-height:440px}
+.plinth{grid-template-columns:minmax(0,1fr)}
+.plinth > *{position:relative; width:100%; min-width:0}
+[data-band]{min-width:0; overflow:hidden}
+.cu h3{font-size:1.375rem; letter-spacing:-.015em; line-height:1.2}
+.cu p{color:var(--mut); margin-top:6px; max-width:52ch}
+.also{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:24px; margin:48px 0 0; padding:0}
+.also > div{border-top:1px solid var(--line); padding-top:18px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px}
+.also svg{grid-row:span 2; color:var(--accent); margin-top:2px}
+.also dt{font-weight:600}
+.also dd{margin:0; color:var(--mut); font-size:.9375rem}
+
+/* Steps */
+.steps{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:24px; counter-reset:s}
+.step{display:grid; gap:12px; align-content:start; padding-top:22px; border-top:1px solid var(--line); position:relative}
+.step::before{counter-increment:s; content:counter(s); position:absolute; top:-15px; left:0; width:30px; height:30px; border-radius:50%; background:var(--ground); border:1px solid var(--line); display:grid; place-items:center; font-family:var(--font-display); font-weight:700; font-size:.9375rem}
+.step h3{font-size:1.25rem; letter-spacing:-.01em; margin-top:8px}
+.step p{color:var(--mut)}
+.chipline{margin-top:6px; display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:52px}
+.chipline code{font-size:.8125rem; overflow-wrap:anywhere}
+.chipline svg{color:var(--accent)}
+
+/* Trust (privacy) */
+.trust-grid{display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:40px 64px; align-items:start}
+.trust-lead p{color:var(--mut); margin-top:16px; max-width:42ch}
+.ledger{margin:0; display:grid; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-l); overflow:hidden}
+.ledger > div{display:grid; grid-template-columns:150px minmax(0,1fr); gap:6px 24px; padding:20px 24px; border-top:1px solid var(--line)}
+.ledger > div:first-child{border-top:0}
+.ledger dt{font-weight:600; display:flex; gap:10px; align-items:flex-start}
+.ledger dt svg{color:var(--accent); margin-top:2px}
+.ledger dd{margin:0; color:var(--mut)}
+.ledger dd code{color:var(--ink); background:var(--surface-2); border-radius:6px; padding:1px 6px; font-size:.8125rem}
+.ledger .cmds{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+
+/* FAQ */
+.faq{max-width:860px}
+.faq details{border-top:1px solid var(--line)}
+.faq details:last-child{border-bottom:1px solid var(--line)}
+.faq summary{display:flex; justify-content:space-between; align-items:center; gap:16px; min-height:64px; padding:12px 0; cursor:pointer; list-style:none; font-family:var(--font-display); font-size:1.1875rem; font-weight:600; letter-spacing:-.01em}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary svg{transition:transform .25s var(--ease-out); color:var(--mut)}
+.faq details[open] summary svg{transform:rotate(45deg)}
+.faq details p{color:var(--mut); padding:0 0 20px; max-width:68ch}
+.faq details code{color:var(--ink)}
+
+/* Final CTA */
+.final{background:linear-gradient(to bottom, var(--ground), var(--wall) 30%, var(--wall)); padding-top:clamp(72px, 9vw, 120px); overflow:hidden; text-align:center}
+.final h2{font-size:clamp(2.25rem, 1.4rem + 3vw, 4rem); line-height:1.03; letter-spacing:-.035em; font-weight:700}
+.final .lead{margin:16px auto 0}
+.final-act{margin:28px auto 0; max-width:620px; text-align:left}
+.final .cta-row{justify-content:center}
+.peek{margin-top:clamp(48px, 6vw, 72px); height:clamp(150px, 16vw, 210px); overflow:hidden; display:flex; justify-content:center; align-items:flex-start}
+.peek .device{animation:none; max-width:1080px}
+.lead{font-size:clamp(1.0625rem, 1rem + .3vw, 1.1875rem); color:var(--mut); max-width:48ch}
+
+/* Footer and Labs plate (family element; footer only) */
+.foot{border-top:1px solid var(--line); padding-block:48px 32px; font-size:.9375rem}
+.foot-grid{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto; gap:32px 48px; align-items:start}
+.foot p{color:var(--mut); margin-top:10px; max-width:36ch}
+.foot ul{list-style:none; margin:0; padding:0; display:grid; gap:2px}
+.foot ul a{display:inline-flex; min-height:44px; align-items:center; text-decoration:none; color:var(--mut)}
+.foot ul a:hover{color:var(--ink); text-decoration:underline}
+.foot-bottom{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:40px; padding-top:20px; border-top:1px solid var(--line); color:var(--mut); font-size:.875rem}
+.labs{display:inline-flex; align-items:stretch; min-height:64px; border:1px solid var(--lab-line); border-radius:var(--r-s); background:var(--lab-paper); color:var(--lab-ink); text-decoration:none; overflow:hidden; font-family:var(--font-text); font-size:1rem; font-weight:600; line-height:1.25; transition:border-color .15s; max-width:380px}
+.labs-mark{display:grid; place-items:center; width:64px; flex:none; background:var(--lab-ink); color:var(--lab-paper)}
+.labs-mark svg{width:28px; height:28px}
+.labs-text{display:flex; flex-direction:column; justify-content:center; gap:2px; padding:10px 18px}
+.labs-text > span{display:flex; align-items:center; gap:8px}
+.labs-text svg{width:16px; height:16px; transition:transform .2s var(--ease-out)}
+.labs:hover{border-color:var(--lab-ink)}
+.labs:hover .labs-text svg{transform:translateX(3px)}
+.labs:focus-visible{outline-color:var(--lab-ink)}
+.labs small{font-weight:400; font-size:.875rem; color:var(--lab-mut)}
+
+/* ---------- Responsive (shared) ---------- */
+@media (max-width: 860px){
+  .nav-links{display:none}
+  .lang{margin-left:auto}
+  .sec-head, .trust-grid{grid-template-columns:1fr}
+  .spec dl{grid-template-columns:1fr 1fr}
+  .spec dl > div:nth-child(3){border-left:0}
+  .spec dl > div:nth-child(n+3){border-top:1px solid var(--line)}
+  .closeups{grid-template-columns:1fr}
+  .cu:first-child{grid-row:auto}
+  .cu:first-child .plinth{min-height:280px}
+  .also{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr; gap:40px}
+  .foot-grid{grid-template-columns:1fr}
+  .ledger > div{grid-template-columns:1fr}
+}
+@media (max-width: 520px){
+  :root{--band-fs: 11px}
+  .nav .btn{display:none}
+  .spec dl{grid-template-columns:1fr}
+  .spec dl > div{border-left:0; border-top:1px solid var(--line)}
+  .spec dl > div:first-child{border-top:0}
+  .shell .wrap{justify-content:center}
+  .shell-tag{display:none}
+  .cmd{flex-wrap:wrap; padding:10px 10px 10px 14px}
+  .cmd .btn{width:100%}
+  .term-body{padding:12px}
+  .tile{font-size:11px; padding:12px}
+  .scenes{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr)}
+  .scene{padding:6px 6px}
+  .scene span{font-size:.75rem}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
+}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="shell" role="region" aria-label="Mockup controls">
+  <div class="wrap">
+    <span class="shell-tag">console-band · Option 3: Width Sweep</span>
+    <div class="seg" role="group" aria-label="Colour theme">
+      <button type="button" data-theme-btn="auto">Auto</button>
+      <button type="button" data-theme-btn="light">Light</button>
+      <button type="button" data-theme-btn="dark">Dark</button>
+    </div>
+  </div>
+</div>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#main" id="brand" aria-label="console-band"></a>
+    <nav class="nav-links" id="navlinks" aria-label="Primary"></nav>
+    <div class="lang" role="group" aria-label="Language / Dil">
+      <button type="button" data-lang-btn="en" lang="en">EN</button>
+      <button type="button" data-lang-btn="tr" lang="tr">TR</button>
+    </div>
+    <a class="icon-btn" id="navgh" href="https://github.com/Derinbay-Labs/console-band"><svg class="i" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 5h5v5M19 5l-8 8"/><path d="M17 14v5H5V7h5"/></svg></a>
+    <a class="btn btn-primary btn-sm" href="#get" id="navcta"></a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="hero" aria-labelledby="h1"></section>
+
+  <section class="spec" aria-labelledby="spec-h">
+    <div class="wrap"><h2 class="sr-only" id="spec-h"></h2><dl id="spec"></dl></div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="feat-h">
+    <div class="wrap">
+      <div class="sec-head"><h2 id="feat-h"></h2><p id="feat-p"></p></div>
+      <div class="closeups" id="closeups"></div>
+      <dl class="also" id="also"></dl>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-h" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2 id="how-h"></h2><p id="how-p"></p></div>
+      <ol class="steps" id="steps"></ol>
+    </div>
+  </section>
+
+  <section class="section trust" id="privacy" aria-labelledby="trust-h" style="padding-top:0">
+    <div class="wrap trust-grid">
+      <div class="trust-lead"><h2 id="trust-h"></h2><p id="trust-p"></p></div>
+      <dl class="ledger" id="ledger"></dl>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-h" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2 id="faq-h"></h2></div>
+      <div class="faq" id="faq-list"></div>
+    </div>
+  </section>
+
+  <section class="final" id="get" aria-labelledby="final-h">
+    <div class="wrap">
+      <h2 id="final-h"></h2>
+      <p class="lead" id="final-p"></p>
+      <div class="final-act" id="final-cta"></div>
+      <div class="peek" aria-hidden="true" id="peek"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><a class="brand" href="#main" id="brand-f" aria-label="console-band"></a><p id="foot-tag"></p></div>
+      <nav id="foot-nav" aria-label="Footer"><ul id="foot-links"></ul></nav>
+      <a class="labs" id="labs-foot" href="https://derinbay.com/en/labs/"></a>
+    </div>
+    <div class="foot-bottom"><span id="copyright"></span><span id="foot-note"></span></div>
+  </div>
+</footer>
+
+<script>
+(() => {
+const OPT = {
+  n:3,
+  cols:{w140:140, w104:104, w72:72},
+  copy:{
+    en:{
+      title:'console-band: stay ahead of the limit',
+      h1:'Stay ahead of the limit.',
+      lead:'console-band shows session and weekly use against an even pace, the prompt cache running down and the context filling up, in a band that fits any terminal.',
+      miniCap:'Narrow terminal: the compact band.', winTitle:'columns',
+      scenesLabel:'Terminal width',
+      scenes:[['w140','140 columns','Wide'],['w104','104 columns','Standard'],['w72','72 columns','Narrow']],
+      notes:{
+        w140:[['gate','GATE','With room past 90 columns, a strip of the latest checks appears.'],['agents','AGENTS','Full subagent cards: model, context, output and time.'],['ctx','tooling','The breakdown row names every context category.']],
+        w104:[['gate','GATE','The check strip shortens to the room that is left.'],['lim','SESSION · WEEKLY','Bars shrink; percentages and pace gaps stay.'],['foot','PWD','Every row is cut to the band’s width, so nothing wraps.']],
+        w72:[['env','Header','Below 100 columns: name, model and cost on one row.'],['main','Live','Working state, turn time, gate and agents on one line.'],['foot','Folder','Folder and branch only.']]
+      },
+      feats:[['Read the pace, not just the percentage','Five hours and seven days pass at a steady rate. The band marks where even use would be now, so 41% can be fine at 4 pm and a warning at 10 am.'],['Watch the cache count down','After each turn the prompt cache has 5 minutes, or 60 with the 1-hour cache. The band counts it down, so you know when a reply will cost a cold start.'],['Know where you are','The LOC row shows the clock, plus city and weather if you set them. The last row shows folder, branch, last-commit age and modified files.']],
+      also:[['cols','Context by category','System, tools, MCP, agents, memory, skills and messages, reserve dashed.'],['users','Subagents as they run','Up to three cards with task, type, model, context, output and time.'],['shield','Every permission check','Allowed, cleared by you, pending and denied, by file, shell and other.']],
+      pace:[['┃','k-b','where even use would be now'],['━','k-r','use past that point'],['┄','k-b','room left before the pace mark'],['+19','k-r','points ahead of pace (− means behind)']],
+      legendLabel:'How to read the limits row', scrollLabel:'Band preview, scrolls sideways on narrow screens'
+    },
+    tr:{
+      title:'console-band: limitin önünde kalın',
+      h1:'Limitin önünde kalın.',
+      lead:'console-band; oturum ve haftalık kullanımı eşit tempoya göre, istem önbelleğinin geri sayımını ve dolan bağlamı, her terminale sığan bir bantta gösterir.',
+      miniCap:'Dar terminal: kompakt bant.', winTitle:'sütun',
+      scenesLabel:'Terminal genişliği',
+      scenes:[['w140','140 sütun','Geniş'],['w104','104 sütun','Standart'],['w72','72 sütun','Dar']],
+      notes:{
+        w140:[['gate','GATE','90 sütunun ötesinde yer varsa son kontrollerin şeridi belirir.'],['agents','AGENTS','Tam alt ajan kartları: model, bağlam, çıktı ve süre.'],['ctx','tooling','Dağılım satırı her bağlam kategorisini adlandırır.']],
+        w104:[['gate','GATE','Kontrol şeridi kalan yere göre kısalır.'],['lim','SESSION · WEEKLY','Çubuklar küçülür; yüzdeler ve tempo farkları kalır.'],['foot','PWD','Her satır bandın genişliğinde kesilir, hiçbir şey alta kaymaz.']],
+        w72:[['env','Başlık','100 sütunun altında: ad, model ve maliyet tek satırda.'],['main','Canlı','Çalışma durumu, tur süresi, izin ve ajanlar tek satırda.'],['foot','Klasör','Yalnızca klasör ve dal.']]
+      },
+      feats:[['Yüzdeyi değil, tempoyu okuyun','Beş saat ve yedi gün sabit hızla geçer. Bant eşit kullanımda şu an nerede olmanız gerektiğini işaretler; böylece yüzde 41 öğleden sonra normal, sabah ise bir uyarı olabilir.'],['Önbelleğin geri sayımını izleyin','Her turdan sonra istem önbelleğinin 5 dakikası, 1 saatlik önbellekte 60 dakikası vardır. Bant bunu geri sayar; bir yanıtın soğuk başlangıca ne zaman mal olacağını bilirsiniz.'],['Nerede olduğunuzu bilin','LOC satırı saati, ayarlarsanız şehir ve hava durumunu gösterir. Son satır klasörü, dalı, son commit’in yaşını ve değişmiş dosyaları gösterir.']],
+      also:[['cols','Kategoriye göre bağlam','Sistem, araçlar, MCP, ajanlar, bellek, beceriler ve mesajlar; pay kesik çizgiyle.'],['users','Çalışan alt ajanlar','Görev, tür, model, bağlam, çıktı ve süreyle en fazla üç kart.'],['shield','Her izin kontrolü','İzin verilen, sizin onayladığınız, bekleyen ve reddedilen; dosya, kabuk ve diğer olarak.']],
+      pace:[['┃','k-b','eşit kullanımda şu an olmanız gereken yer'],['━','k-r','o noktayı aşan kullanım'],['┄','k-b','tempo işaretine kadar kalan pay'],['+19','k-r','temponun puan olarak önünde (− geride demek)']],
+      legendLabel:'Limit satırı nasıl okunur', scrollLabel:'Bant önizlemesi, dar ekranda yana kayar'
+    }
+  },
+  hero(t, H){
+    return `<div class="wrap o3-head">
+      <div class="o3-copy"><h1 id="h1">${t.h1}</h1><p class="lead">${t.lead}</p>${H.cmdBlock(t)}</div>
+      <figure class="o3-mini" style="margin:0"><div class="term"><div class="term-body"><div data-band="mid" data-maxcols="64"></div><div class="prompt" aria-hidden="true"><span class="gt">&gt;</span><span class="caret"></span></div></div></div><figcaption class="cap">${t.miniCap} ${t.synthetic}</figcaption>${H.srList('mid', t.lang, t.srBand)}</figure>
+    </div>
+    <div class="stage" id="stage">
+      <div class="wrap stage-grid">
+        <div class="scenes" role="tablist" id="scenes"></div>
+        <figure class="device-wrap" style="margin:0">
+          <div class="device" id="device" role="tabpanel" tabindex="0"></div>
+          <figcaption class="synthetic">${t.synthetic}</figcaption>
+        </figure>
+        <ul class="notes" id="notes"></ul>
+      </div>
+    </div>`;
+  },
+  device(scene, t, H){
+    const n = OPT.cols[scene];
+    return `<div class="term o3-win" style="--cols:${n}" data-cols-out><div class="term-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="t">api-gateway · <span class="colsnote"><span data-cols-label>${n}</span> ${t.winTitle}</span></span><span style="width:47px"></span></div>
+      <div class="term-body" tabindex="0" role="region" aria-label="${t.scrollLabel}"><div data-band="agents" data-maxcols="${n}" data-mincols="${n}"></div><div class="prompt" aria-hidden="true"><span class="gt">&gt;</span><span class="caret"></span></div></div></div>${H.srList('agents', t.lang, t.srBand)}`;
+  },
+  closeups(t, H){
+    const tile = (band, keys, patch, extra = '') => `<div class="tile ${extra}" data-band="${band}" data-keys="${keys}" data-full${patch ? ` data-patch='${JSON.stringify(patch)}'` : ''} data-city></div>`;
+    return [
+      `<div>${tile('cool','lim',null,'big')}<ul class="pace-legend" aria-label="${t.legendLabel}">${t.pace.map(([g, c, w]) => `<li><b class="${c}" aria-hidden="true">${g}</b><span>${w}</span></li>`).join('')}</ul></div>`,
+      `<div class="tile-stack">${tile('mid','cache',{cache:268})}${tile('mid','cache',{cache:118})}${tile('mid','cache',{cache:41})}${tile('mid','cache',{cache:0})}</div>`,
+      `<div>${tile('cool','loc,foot')}</div>`
+    ];
+  },
+  peek(t, H){
+    return `<div class="device" style="display:grid; justify-items:center"><div class="term" style="width:min(100%, 620px)"><div class="term-body"><div data-band="mid" data-maxcols="72"></div></div></div></div>`;
+  }
+};
+
+/* ---------- Icons (one authored stroke family, 1.75) ---------- */
+const P = {
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  ext:'<path d="M14 5h5v5M19 5l-8 8"/><path d="M17 14v5H5V7h5"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  copy:'<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  terminal:'<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  play:'<path d="M5 12h3l2-5 4 10 2-5h3"/>',
+  globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5z"/>',
+  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+  key:'<circle cx="8" cy="15" r="3.5"/><path d="M10.5 12.5L19 4M16 7l2.5 2.5M14 9l2 2"/>',
+  branch:'<circle cx="6" cy="5.5" r="2"/><circle cx="6" cy="18.5" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7.5v9M18 10c0 4-6 3-11 7"/>',
+  users:'<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M17.5 14.4c1.6.7 2.6 2.3 3 4.6"/>',
+  shield:'<path d="M12 3.5l7 3v5c0 4.4-3 7.8-7 9-4-1.2-7-4.6-7-9v-5z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>',
+  log:'<path d="M5 6h14M5 10h14M5 14h9M5 18h6"/>',
+  cols:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M9 5v14M15 5v14"/>'
+};
+const ic = (n, cls='i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${P[n]}</svg>`;
+const labsMark = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3.5 5h6a7 7 0 0 1 0 14h-6z"/><circle cx="20" cy="17" r="2.2" fill="currentColor"/></svg>';
+/* Product mark: the band's own ┃┃ logo between two rules */
+const logo = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="8" fill="var(--term)"/><path d="M5 16h4M23 16h4" stroke="var(--k-teal)" stroke-width="2" stroke-linecap="round"/><rect x="11" y="8" width="3.4" height="16" rx="1.2" fill="var(--k-teal)"/><rect x="17.2" y="8" width="3.4" height="16" rx="1.2" fill="var(--k-orange)"/></svg>';
+const CMD = '/plugin install console-band --marketplace Derinbay-Labs/console-band';
+const REPO = 'https://github.com/Derinbay-Labs/console-band';
+
+/* ---------- Band engine: a port of the ui.render layout in hooks/register.tsx ---------- */
+const LABEL = 9;
+const sp = (text, c = 'x', b = false) => ({text, c, b});
+const lab = t => sp(t.padEnd(LABEL), 'g');
+const SEP = () => sp('  │  ', 'd');
+const rule = (n, c = 'd') => sp('─'.repeat(Math.max(0, n)), c);
+const fill = (n, c) => sp('━'.repeat(Math.max(0, n)), c);
+const lvl = p => p >= 80 ? 'r' : p >= 50 ? 'y' : 'gr';
+const fmtCount = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e4 ? Math.round(n / 1000) + 'k' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(Math.round(n));
+const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const SEGS = [['system','g',3100],['tools','x',12400],['mcp','t',4200],['agents','b',2300],['memory','o',3600],['skills','y',1900]];
+const SC = {
+  mid:{working:true, effort:'high', mode:'acceptEdits', req:48, turn:'0:42', edits:3, errors:0,
+    gate:{recent:'✓✓✓✓?✓✓✓✓✓✓✓✗✓✓✓✓✓✓✓✓✓✓✓', rule:27, cleared:2, ask:1, deny:1, file:14, shell:12, other:5},
+    agents:[], log:[['14:31:02','main','Edit api/limits.go','x'],['14:31:40','main','Bash go test ./...  ✗','r'],['14:32:05','main','Edit api/limits_test.go','x']],
+    msgs:98000, pct:62, s:41, sp:35, wk:58, wp:62, cache:252, ttl:300, cost:'$3.42', dur:'1h12m', clock:'14:32', dir:'api-gateway', branch:'feat/rate-limit', age:'18m', mod:4},
+  agents:{working:true, effort:'high', mode:'acceptEdits', req:61, turn:'2:06', edits:7, errors:0,
+    gate:{recent:'✓✓✓✓✓✓✓✓✓✓✓✓✓✓?✓✓✓✓✓✓✓✓✓', rule:38, cleared:3, ask:1, deny:1, file:22, shell:15, other:6},
+    agents:[['running','Map rate-limit middleware','Explore','Sonnet 5.5',38000,2100,9,'1:14'],['running','Write tests for token bucket','general-purpose','Sonnet 5.5',22000,4800,12,'0:51'],['done','Review limits.go diff','code-reviewer','Opus 5.5',41000,1600,7,'1:52']],
+    log:[['14:40:11','Map rate-li…','spawned · Explore','x'],['14:40:30','Write tests…','spawned · general-purpose','x'],['14:41:02','Review limi…','done · 1m52s','gr']],
+    msgs:112000, pct:71, s:52, sp:44, wk:60, wp:62, cache:280, ttl:300, cost:'$4.10', dur:'1h21m', clock:'14:41', dir:'api-gateway', branch:'feat/rate-limit', age:'27m', mod:6},
+  cool:{working:false, effort:'high', mode:'acceptEdits', req:74, receipt:{dur:'3m14s', agents:2, edits:5, cost:'$0.84'},
+    gate:{recent:'✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✗✓✓✓✓', rule:44, cleared:3, ask:0, deny:2, file:25, shell:18, other:6},
+    agents:[['done','Map rate-limit middleware','Explore','Sonnet 5.5',44000,2600,11,'6:10'],['done','Write tests for token bucket','general-purpose','Sonnet 5.5',31000,6200,15,'4:33']],
+    log:[['14:49:27','Map rate-li…','done · 6m10s','gr'],['14:49:58','main','Edit api/limits.go','x'],['14:50:10','gate','denied · Bash git push','r']],
+    msgs:121000, pct:74, s:82, sp:63, wk:64, wp:63, cache:41, ttl:300, cost:'$4.94', dur:'1h32m', clock:'14:52', dir:'api-gateway', branch:'feat/rate-limit', age:'4m', mod:2,
+    city:'Istanbul', weather:'17°C partly cloudy'}
+};
+function rowsFor(name, cols, opt = {}){
+  const s = {...SC[name], ...(opt.patch || {})};
+  const compact = !opt.full && cols < 100;
+  const segs = [...SEGS, ['msgs','p',s.msgs]];
+  const win = 200000, reserved = 33000;
+  const R = [];
+  const add = (k, hl, spans) => R.push({k, hl, spans});
+  const logo2 = [sp('┃','t',1), sp('┃ ','o',1)];
+  const ctx = () => {
+    const right = `${String(s.pct).padStart(4)}%`, w = cols - LABEL - right.length - 1, out = [lab('CONTEXT')];
+    let used = 0;
+    for(const [, c, tok] of segs){ const n = Math.min(w - used, Math.max(1, Math.round(tok / win * w))); if(n <= 0) break; out.push(fill(n, c)); used += n; }
+    const rs = Math.min(w - used, Math.round(reserved / win * w));
+    out.push(rule(w - used - rs), sp('-'.repeat(Math.max(0, rs)), 'g'), sp(' ' + right, 't', 1));
+    return out;
+  };
+  const bd = () => {
+    const tooling = segs.reduce((a, x) => a + x[2], 0) - s.msgs;
+    const out = [sp(' '.repeat(LABEL)), sp('tooling ','g'), sp(fmtCount(tooling),'t',1), sp(' · ','d'), sp(Math.round(tooling / win * 100) + '%','t',1), SEP()];
+    for(const [l, c, tok] of segs) out.push(sp('━ ', c), sp(l + ' ', 'g'), sp(fmtCount(tok) + '  '));
+    return out;
+  };
+  const side = (used, pace, w) => {
+    const n = Math.round(Math.min(100, used) / 100 * w), p = Math.min(w - 1, Math.round(pace / 100 * w)), lc = lvl(used);
+    return Array.from({length:Math.max(0, w)}, (_, i) => i === p ? ['┃','b'] : i < n ? ['━', i > p ? 'r' : lc] : i < p ? ['┄','b'] : ['─','d']);
+  };
+  const runs = cells => cells.reduce((o, [ch, c]) => { const l = o[o.length - 1]; if(l && l.c === c) l.text += ch; else o.push(sp(ch, c)); return o; }, []);
+  const delta = (u, p) => { const d = Math.round(u - p); return sp(d > 0 ? `+${d}` : d < 0 ? `−${-d}` : '±0', d <= 0 ? 'gr' : d <= 10 ? 'y' : 'r'); };
+  const lim = () => {
+    const sPct = `${s.s}%`.padEnd(4), wPct = `${s.wk}%`, sd = delta(s.s, s.sp), wd = delta(s.wk, s.wp);
+    const sDelta = sd.text.padEnd(4), wDelta = ' ' + wd.text;
+    const mid = cols - LABEL - sPct.length - sDelta.length - 1 - (2 + wPct.length + wDelta.length + 7);
+    const half = Math.floor((mid - 1) / 2);
+    return [lab('SESSION'), sp(sPct, lvl(s.s), 1), sp(sDelta, sd.c), sp(' '), ...runs(side(s.s, s.sp, half).reverse()), sp('◆', s.s >= s.wk ? lvl(s.s) : lvl(s.wk)), ...runs(side(s.wk, s.wp, mid - 1 - half)), sp('  '), sp(wPct, lvl(s.wk), 1), sp(wDelta, wd.c), sp(' WEEKLY','g')];
+  };
+  const cache = () => {
+    const cold = s.cache <= 0, right = cold ? 'cold' : fmtClock(s.cache), w = cols - LABEL - 7;
+    const n = cold ? 0 : Math.max(1, Math.round(s.cache / s.ttl * w));
+    const c = cold ? 'r' : s.cache / s.ttl < .2 ? 'r' : s.cache / s.ttl < .5 ? 'y' : 'gr';
+    return [lab('CACHE'), fill(n, c), rule(w - n), sp(right.padStart(7), c, 1)];
+  };
+  const foot = () => compact
+    ? [sp('◆ ','t'), sp(s.dir), sp(` (${s.branch})`,'t')]
+    : [sp('◆ ','t'), sp('PWD ','g'), sp(s.dir), SEP(), sp('⎇ ','g'), sp(s.branch,'t'), SEP(), sp('Age ','g'), sp(s.age,'gr'), SEP(), sp('Mod ','g'), sp(String(s.mod))];
+  const g = s.gate, total = g.rule + g.cleared + g.ask + g.deny;
+  const running = s.agents.filter(a => a[0] === 'running');
+  if(compact){
+    const live = [s.working ? sp('● working','gr') : sp('○ idle','g')];
+    if(s.working) live.push(sp(` · turn ${s.turn}`,'o'));
+    live.push(sp(` · gate ${total}`));
+    if(g.deny) live.push(sp(` ✗${g.deny}`,'r'));
+    if(s.agents.length) live.push(sp(` · agents ${running.length}/${s.agents.length}`,'b'));
+    add('head','env',[...logo2, sp('console-band','t',1), SEP(), sp('Opus 5.5','t'), SEP(), sp(s.cost,'y')]);
+    add('live','main',live); add('ctx','ctx',ctx()); add('lim','lim',lim()); add('cache','cache',cache()); add('foot','foot',foot());
+  } else {
+    add('head','head',[rule(2,'t'), sp(' '), ...logo2, sp('console-band','t',1), sp(' '), rule(cols - 12 - 6,'t')]);
+    const loc = [lab('LOC')];
+    if(s.city && opt.city) loc.push(sp(s.city), SEP());
+    loc.push(sp(s.clock,'t'));
+    if(s.weather && opt.city) loc.push(SEP(), sp(s.weather));
+    add('loc','loc',loc);
+    add('env','env',[lab('ENV'), sp('CC ','g'), sp('2.4.1'), SEP(), sp('Opus 5.5','t',1), SEP(), sp(s.cost,'y'), SEP(), sp(s.dur,'t')]);
+    add('main','main',[lab('MAIN'), s.working ? sp('● working','gr',1) : sp('○ idle','g'), SEP(), sp('effort ','g'), sp('▮▮▮','o'), sp('▯ ','d'), sp(s.effort), SEP(), sp('mode ','g'), sp(s.mode), SEP(), sp(`${s.req} req`)]);
+    const turn = [lab('TURN')];
+    if(s.working){ turn.push(sp(`◐ turn ${s.turn}`,'o',1)); if(s.edits) turn.push(sp(` · ${plural(s.edits,'edit')}`)); if(s.errors) turn.push(sp(` · ${plural(s.errors,'error')}`,'r')); }
+    else { const r = s.receipt; turn.push(sp(`✓ last turn ${r.dur}`,'gr'), sp(` · ${plural(r.agents,'agent')}`,'b'), sp(` · ${plural(r.edits,'edit')}`), sp(` · +${r.cost}`,'y')); }
+    add('turn','turn',turn);
+    const gate = [lab('GATE'), sp(`${plural(total,'check')} `)];
+    const room = Math.max(0, Math.min(24, cols - 90));
+    for(const ch of room ? [...g.recent].slice(-room) : []) gate.push(sp(ch, ch === '✓' ? 'gr' : ch === '?' ? 'y' : 'r'));
+    gate.push(SEP(), sp(`${g.rule} allowed`,'gr'));
+    if(g.cleared) gate.push(sp(` · ${g.cleared} you`,'cl'));
+    if(g.ask) gate.push(sp(` · ${g.ask} pending`,'y'));
+    if(g.deny) gate.push(sp(` · ${g.deny} denied`,'r',1));
+    gate.push(SEP());
+    for(const k of ['file','shell','other']) gate.push(sp(k + ' ','g'), sp(g[k] + '  '));
+    add('gate','gate',gate);
+    if(s.agents.length){
+      add('agents','agents',[lab('AGENTS'), sp(`${running.length} running`, running.length ? 'gr' : 'g'), sp(` · ${s.agents.length} total`,'g')]);
+      const GL = {running:['●','gr'], done:['✓','g']};
+      [...running, ...s.agents.filter(a => a[0] !== 'running')].slice(0, 3).forEach((a, i) => {
+        const [st, desc, type, model, c, o, req, t] = a;
+        add('agent' + i,'agents',[sp(' '.repeat(LABEL)), sp(GL[st][0] + ' ', GL[st][1]), sp(desc.padEnd(35)), sp(`${type} · ${model}`,'b'), SEP(), sp(`ctx ${fmtCount(c)} · out ${fmtCount(o)} · ${req} req`,'g'), SEP(), sp(t, st === 'running' ? 'o' : 'g')]);
+      });
+    }
+    s.log.forEach(([t, who, text, k], i) => add('log' + i,'log',[i ? sp(' '.repeat(LABEL)) : lab('LOG'), sp(t + ' ','g'), sp(who.padEnd(13),'t'), sp(text, k)]));
+    add('ctx','ctx',ctx()); add('bd','ctx',bd()); add('lim','lim',lim()); add('cache','cache',cache()); add('foot','foot',foot());
+  }
+  const keys = opt.keys;
+  return keys ? R.filter(r => keys.includes(r.k)) : R;
+}
+const esc = t => t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function clip(spans, cols){
+  const out = []; let left = cols;
+  for(const x of spans){ if(left <= 0) break; out.push(x.text.length > left ? {...x, text:x.text.slice(0, left)} : x); left -= x.text.length; }
+  return out;
+}
+function bandHTML(name, cols, opt){
+  return `<pre class="band" aria-hidden="true">${rowsFor(name, cols, opt).map(r => `<span class="r" data-hl="${r.hl}">${clip(r.spans, cols).map(x => `<span class="k-${x.c}${x.b ? ' bo' : ''}">${esc(x.text)}</span>`).join('')}</span>`).join('')}</pre>`;
+}
+const cwCache = {};
+function charWidth(el){
+  const fs = getComputedStyle(el).fontSize;
+  if(cwCache[fs]) return cwCache[fs];
+  const p = document.createElement('span');
+  p.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-family:var(--font-mono);font-size:' + fs;
+  p.textContent = '0'.repeat(100); document.body.appendChild(p);
+  const w = p.getBoundingClientRect().width / 100; p.remove();
+  return (cwCache[fs] = w || 7.8);
+}
+/* Any [data-band] element is painted at the number of columns that fits it, like a real terminal. */
+function paintBands(root = document){
+  root.querySelectorAll('[data-band]').forEach(el => {
+    const cs = getComputedStyle(el), inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const cw = charWidth(el), avail = Math.floor(inner / cw) - 1;
+    const max = +el.dataset.maxcols || 999, min = +el.dataset.mincols || 30;
+    const cols = Math.max(min, Math.min(max, avail));
+    const keys = el.dataset.keys ? el.dataset.keys.split(',') : null;
+    const patch = el.dataset.patch ? JSON.parse(el.dataset.patch) : null;
+    el.innerHTML = bandHTML(el.dataset.band, cols, {keys, full:el.hasAttribute('data-full'), city:el.hasAttribute('data-city'), patch});
+    el.dataset.cols = cols;
+    const out = el.closest('[data-cols-out]');
+    if(out) out.querySelectorAll('[data-cols-label]').forEach(l => l.textContent = cols);
+  });
+  relight();
+}
+/* Screen-reader summary of a band scene (the drawn band itself is aria-hidden). */
+function srBand(name, lang){
+  const s = SC[name], tr = lang === 'tr', g = s.gate, total = g.rule + g.cleared + g.ask + g.deny;
+  const d = (u, p) => { const x = u - p; return tr ? (x > 0 ? `temponun ${x} puan önünde` : x < 0 ? `temponun ${-x} puan gerisinde` : 'tempoda') : (x > 0 ? `${x} points ahead of pace` : x < 0 ? `${-x} points behind pace` : 'on pace'); };
+  return tr ? [
+    `Model Opus 5.5, oturum maliyeti ${s.cost}`, s.working ? `Ana döngü çalışıyor, tur ${s.turn}` : `Ana döngü boşta, son tur ${s.receipt.dur}`,
+    `Bağlam yüzde ${s.pct} dolu`, `Oturum limiti yüzde ${s.s}, ${d(s.s, s.sp)}; haftalık yüzde ${s.wk}, ${d(s.wk, s.wp)}`,
+    `Önbellek: ${s.cache > 0 ? fmtClock(s.cache) + ' kaldı' : 'soğudu'}`, `${total} izin kontrolü, ${g.deny} reddedildi`,
+    s.agents.length ? `${s.agents.filter(a => a[0] === 'running').length} alt ajan çalışıyor` : 'Alt ajan yok', `Dal ${s.branch}, ${s.mod} değişmiş dosya`
+  ] : [
+    `Model Opus 5.5, session cost ${s.cost}`, s.working ? `Main loop working, turn ${s.turn}` : `Main loop idle, last turn ${s.receipt.dur}`,
+    `Context ${s.pct}% used`, `Session limit ${s.s}%, ${d(s.s, s.sp)}; weekly ${s.wk}%, ${d(s.wk, s.wp)}`,
+    `Prompt cache: ${s.cache > 0 ? fmtClock(s.cache) + ' left' : 'cold'}`, `${total} permission checks, ${g.deny} denied`,
+    s.agents.length ? `${s.agents.filter(a => a[0] === 'running').length} subagents running` : 'No subagents', `Branch ${s.branch}, ${s.mod} modified files`
+  ];
+}
+const srList = (name, lang, label) => `<ul class="sr-only" aria-label="${label}">${srBand(name, lang).map(x => `<li>${x}</li>`).join('')}</ul>`;
+
+/* ---------- Copy (shared EN/TR; each option adds its own keys) ---------- */
+const BASE = {
+  en:{
+    lang:'en', skip:'Skip to content', nav:[['#features','Features'],['#privacy','Privacy'],['#faq','FAQ']], navcta:'Install', gh:'GitHub',
+    cmdLabel:'Install command for the Claude Code prompt', copy:'Copy', copied:'Copied', copyFail:'Select the command to copy it',
+    cmdNote:'Run it at the Claude Code prompt. Free, MIT licensed.', ghBtn:'View on GitHub', synthetic:'Sample session shown.', srBand:'What the band shows in this sample',
+    scenesLabel:'Sample moments', specH:'Facts',
+    spec:[['Runs','Only git, read-only'],['Network','None by default'],['Narrow terminals','Compact below 100 columns'],['Licence','MIT, open source']],
+    featH:'Six readings, one glance.', featP:'Everything you would otherwise ask for with /context, /usage or git status, kept current above the prompt.',
+    also:[['users','Subagents as they run','Up to three cards with task, type, model, context, output and time.'],['shield','Every permission check','Allowed, cleared by you, pending and denied, by file, shell and other.'],['branch','Git at a glance','Branch, last-commit age and modified files, from read-only git.']],
+    howH:'Installed in under a minute.', howP:'Three steps at the Claude Code prompt. The desktop app has its own route in the FAQ.',
+    steps:[['Run the install command','Paste it at the prompt of a Claude Code terminal session.'],['Add the marketplace, pick a scope','Answer y, then choose user scope to load the band in every session.'],['Keep working','The band draws above the prompt. Update later with one command.']],
+    stepChips:[CMD, 'y  ›  user scope', '/plugin update console-band'],
+    trustH:'It reads your session. It sends nothing.', trustP:'console-band only observes. Every hook passes its event on unchanged; none blocks, rewrites or answers for Claude Code.',
+    ledger:[['terminal','Runs','Only git, with three fixed read-only commands in the working directory. Nothing else, and never a command it receives.'],['globe','Network','None by default. Set both latitude and longitude and it asks open-meteo.com for the weather every 30 minutes, sending only those two numbers.'],['eye','Reads','Model, version, context breakdown, rate limits, session cost and the folder name. Kept in the session’s plugin state, never written to disk.'],['key','Credentials','None read. Tool inputs in the activity log pass a redaction step for common credential formats first.']],
+    faqH:'Questions',
+    faq:[['Does it work in the desktop app?','Yes. /plugin does not run there: click + next to the prompt box, then Plugins, Add marketplace with <code>Derinbay-Labs/console-band</code>, then Add plugin.'],['What happens in a narrow terminal?','Below 100 columns the band collapses to six compact rows: model and cost, live state, context, limits, cache and folder.'],['Can I install it from a shell?','Yes: <code>claude plugin install console-band --marketplace Derinbay-Labs/console-band</code>'],['Can it block or change what Claude Code does?','No. Every hook passes its event on unchanged, and the band takes no part in permission decisions.'],['What can I configure?','<code>brand</code> sets the name in the header rule, <code>cacheTtlMinutes</code> matches a 5- or 60-minute cache, <code>city</code> adds a LOC row, and latitude with longitude add the weather.']],
+    finalH:'Put the band above your prompt.', finalP:'One command at the Claude Code prompt. Update it later with /plugin update console-band.',
+    footTag:'A live status band above the Claude Code prompt.', footLinks:[['GitHub',REPO],['Privacy','#privacy'],['Contact',REPO + '/issues'],['MIT licence',REPO + '/blob/main/LICENSE']],
+    labs:'A Derinbay Labs project', labsSmall:'Derinbay Labs builds small software that does one job well.',
+    copyright:'© 2026 Derinbay Labs', footNote:'Portions adapted from claude-flightdeck (MIT).', footNav:'Footer'
+  },
+  tr:{
+    lang:'tr', skip:'İçeriğe geç', nav:[['#features','Özellikler'],['#privacy','Gizlilik'],['#faq','SSS']], navcta:'Kur', gh:'GitHub',
+    cmdLabel:'Claude Code istemi için kurulum komutu', copy:'Kopyala', copied:'Kopyalandı', copyFail:'Kopyalamak için komutu seçin',
+    cmdNote:'Claude Code isteminde çalıştırın. Ücretsiz, MIT lisanslı.', ghBtn:'GitHub’da incele', synthetic:'Örnek oturum gösteriliyor.', srBand:'Bu örnekte bandın gösterdikleri',
+    scenesLabel:'Örnek anlar', specH:'Bilgiler',
+    spec:[['Çalıştırdığı','Yalnızca git, salt okunur'],['Ağ','Varsayılan olarak yok'],['Dar terminal','100 sütunun altında kompakt'],['Lisans','MIT, açık kaynak']],
+    featH:'Altı gösterge, tek bakış.', featP:'Normalde /context, /usage ya da git status ile soracağınız her şey, istemin üstünde güncel kalır.',
+    also:[['users','Çalışan alt ajanlar','Görev, tür, model, bağlam, çıktı ve süreyle en fazla üç kart.'],['shield','Her izin kontrolü','İzin verilen, sizin onayladığınız, bekleyen ve reddedilen; dosya, kabuk ve diğer olarak.'],['branch','Tek bakışta git','Dal, son commit’in yaşı ve değişmiş dosyalar; salt okunur git ile.']],
+    howH:'Bir dakikadan kısa sürede kurulu.', howP:'Claude Code isteminde üç adım. Masaüstü uygulamasının yolu SSS’de.',
+    steps:[['Kurulum komutunu çalıştırın','Bir Claude Code terminal oturumunun istemine yapıştırın.'],['Marketplace’i ekleyin, kapsam seçin','y yanıtını verin, ardından bandın her oturumda yüklenmesi için kullanıcı kapsamını seçin.'],['Çalışmaya devam edin','Bant istemin üstünde belirir. Sonra tek komutla güncelleyin.']],
+    stepChips:[CMD, 'y  ›  user scope', '/plugin update console-band'],
+    trustH:'Oturumunuzu okur. Hiçbir şey göndermez.', trustP:'console-band yalnızca gözlemler. Her hook olayı değiştirmeden iletir; hiçbiri Claude Code’u engellemez, yeniden yazmaz ya da onun yerine yanıt vermez.',
+    ledger:[['terminal','Çalıştırdığı','Yalnızca git; çalışma dizininde üç sabit, salt okunur komutla. Başka hiçbir şey, aldığı hiçbir komut değil.'],['globe','Ağ','Varsayılan olarak yok. Enlem ve boylamın ikisi de girilirse 30 dakikada bir open-meteo.com’dan hava durumu ister ve yalnızca bu iki sayıyı gönderir.'],['eye','Okuduğu','Model, sürüm, bağlam dağılımı, kullanım limitleri, oturum maliyeti ve klasör adı. Oturumun eklenti durumunda tutulur, diske yazılmaz.'],['key','Kimlik bilgileri','Hiçbirini okumaz. Etkinlik günlüğündeki araç girdileri önce yaygın kimlik bilgisi biçimleri için maskelenir.']],
+    faqH:'Sorular',
+    faq:[['Masaüstü uygulamasında çalışır mı?','Evet. /plugin orada çalışmaz: istem kutusunun yanındaki + simgesine, sonra Plugins’e tıklayın, Add marketplace ile <code>Derinbay-Labs/console-band</code> ekleyin, ardından Add plugin.'],['Dar bir terminalde ne olur?','100 sütunun altında bant altı kompakt satıra iner: model ve maliyet, canlı durum, bağlam, limitler, önbellek ve klasör.'],['Kabuktan kurabilir miyim?','Evet: <code>claude plugin install console-band --marketplace Derinbay-Labs/console-band</code>'],['Claude Code’un yaptıklarını engelleyebilir ya da değiştirebilir mi?','Hayır. Her hook olayı değiştirmeden iletir ve bant izin kararlarına hiç karışmaz.'],['Neleri ayarlayabilirim?','<code>brand</code> başlık çizgisindeki adı, <code>cacheTtlMinutes</code> 5 ya da 60 dakikalık önbelleği belirler; <code>city</code> bir LOC satırı, enlem ve boylam da hava durumunu ekler.']],
+    finalH:'Bandı isteminizin üstüne koyun.', finalP:'Claude Code isteminde tek komut. Sonra /plugin update console-band ile güncelleyin.',
+    footTag:'Claude Code isteminin üstünde canlı bir durum bandı.', footLinks:[['GitHub',REPO],['Gizlilik','#privacy'],['İletişim',REPO + '/issues'],['MIT lisansı',REPO + '/blob/main/LICENSE']],
+    labs:'Bir Derinbay Labs projesi', labsSmall:'Derinbay Labs, tek bir işi iyi yapan küçük yazılımlar geliştirir.',
+    copyright:'© 2026 Derinbay Labs', footNote:'Bazı bölümler claude-flightdeck’ten (MIT) uyarlanmıştır.', footNav:'Alt bilgi'
+  }
+};
+
+/* ---------- State and helpers ---------- */
+const S = {lang:'en', theme:'auto', scene:null};
+const root = document.documentElement;
+const $ = id => document.getElementById(id);
+const T = () => ({...BASE[S.lang], ...OPT.copy[S.lang]});
+const cmdBlock = (t, ghToo = true, extra = '') => `<div class="cta" data-cta>
+  <div class="cmd ${extra}" role="group" aria-label="${t.cmdLabel}"><code>${CMD}</code><button class="btn btn-primary btn-sm" type="button" data-copy>${ic('copy')}<span>${t.copy}</span></button></div>
+  <div class="cta-row">${ghToo ? `<a class="btn btn-ghost btn-sm" href="${REPO}">${t.ghBtn}${ic('ext')}</a>` : ''}<span class="note">${t.cmdNote}</span></div>
+  <span class="sr-only" aria-live="polite" data-copy-status></span>
+</div>`;
+const H = {ic, logo, CMD, REPO, cmdBlock, srList, bandHTML, rowsFor, SC, esc};
+
+/* ---------- Stage: scene tabs, the device and highlight notes ---------- */
+function renderStage(){
+  const t = T(), dev = $('device');
+  if(!dev) return;
+  dev.innerHTML = OPT.device(S.scene, t, H);
+  dev.setAttribute('aria-labelledby', 'tab-' + S.scene);
+  $('scenes').querySelectorAll('[role=tab]').forEach(b => { const on = b.dataset.scene === S.scene; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+  const notes = $('notes');
+  if(notes) notes.innerHTML = (t.notes[S.scene] || []).map(([hl, k, txt]) => `<li><button type="button" class="note-btn" data-hl-target="${hl}" aria-pressed="false"><span class="pin" aria-hidden="true"></span><span><b>${k}</b>${txt}</span></button></li>`).join('');
+  paintBands(dev);
+}
+function light(hl){
+  document.querySelectorAll('#device .band').forEach(b => {
+    const set = hl ? hl.split(' ') : [];
+    b.querySelectorAll('.r').forEach(r => r.classList.toggle('is-lit', set.includes(r.dataset.hl)));
+    b.classList.toggle('has-lit', !!hl);
+  });
+}
+const relight = () => {
+  document.querySelectorAll('#notes .note-btn').forEach(b => { const set = b.dataset.hlTarget.split(' '); b.parentElement.hidden = ![...document.querySelectorAll('#device .band .r')].some(r => set.includes(r.dataset.hl)); });
+  const p = document.querySelector('.note-btn[aria-pressed="true"]'); light(p ? p.dataset.hlTarget : (OPT.lit ? OPT.lit(S.scene) : null)); };
+
+/* ---------- Render ---------- */
+function render(){
+  const t = T();
+  root.lang = S.lang; document.title = `${t.title} · Option ${OPT.n}`;
+  document.querySelector('.skip').textContent = t.skip;
+  const brand = `${logo}<span>console-band</span>`;
+  $('brand').innerHTML = brand; $('brand-f').innerHTML = brand;
+  $('navlinks').innerHTML = t.nav.map(([h, l]) => `<a href="${h}">${l}</a>`).join('');
+  $('navgh').setAttribute('aria-label', t.gh); $('navgh').title = t.gh;
+  $('navcta').textContent = t.navcta;
+  $('hero').innerHTML = OPT.hero(t, H);
+  const sc = $('scenes');
+  if(sc){
+    sc.setAttribute('aria-label', t.scenesLabel);
+    sc.innerHTML = t.scenes.map(([id, n, d]) => `<button type="button" role="tab" class="scene" id="tab-${id}" data-scene="${id}" aria-controls="device"><strong>${n}</strong>${d ? `<span>${d}</span>` : ''}</button>`).join('');
+    if(!t.scenes.some(s => s[0] === S.scene)) S.scene = t.scenes[0][0];
+    renderStage();
+  }
+  $('spec-h').textContent = t.specH;
+  $('spec').innerHTML = t.spec.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  $('feat-h').textContent = t.featH; $('feat-p').textContent = t.featP;
+  const vis = OPT.closeups(t, H);
+  $('closeups').innerHTML = t.feats.map(([h, d], i) => `<article class="cu"><div class="plinth">${vis[i]}</div><div><h3>${h}</h3><p>${d}</p></div></article>`).join('');
+  $('also').innerHTML = t.also.map(([i, h, d]) => `<div>${ic(i)}<dt>${h}</dt><dd>${d}</dd></div>`).join('');
+  $('how-h').textContent = t.howH; $('how-p').textContent = t.howP;
+  $('steps').innerHTML = t.steps.map(([h, d], i) => `<li class="step"><h3>${h}</h3><p>${d}</p><div class="chipline">${ic('terminal')}<code>${t.stepChips[i]}</code></div></li>`).join('');
+  $('trust-h').textContent = t.trustH; $('trust-p').textContent = t.trustP;
+  const gitCmds = ['git rev-parse --abbrev-ref HEAD','git log -1 --format=%ct','git status --porcelain'];
+  $('ledger').innerHTML = t.ledger.map(([i, k, v], n) => `<div><dt>${ic(i)}${k}</dt><dd>${v}${n === 0 ? `<span class="cmds">${gitCmds.map(c => `<code>${c}</code>`).join('')}</span>` : ''}</dd></div>`).join('');
+  $('faq-h').textContent = t.faqH;
+  $('faq-list').innerHTML = t.faq.map(([q, a]) => `<details><summary>${q}${ic('plus')}</summary><p>${a}</p></details>`).join('');
+  $('final-h').textContent = t.finalH; $('final-p').textContent = t.finalP;
+  $('final-cta').innerHTML = cmdBlock(t, true);
+  $('peek').innerHTML = OPT.peek(t, H);
+  $('foot-tag').textContent = t.footTag;
+  $('foot-nav').setAttribute('aria-label', t.footNav);
+  $('foot-links').innerHTML = t.footLinks.map(([l, h]) => `<li><a href="${h}">${l}</a></li>`).join('');
+  const a = $('labs-foot'); a.href = `https://derinbay.com/${S.lang}/labs/`; a.hreflang = S.lang;
+  a.innerHTML = `<span class="labs-mark">${labsMark}</span><span class="labs-text"><span>${t.labs}${ic('arrow')}</span><small>${t.labsSmall}</small></span>`;
+  $('copyright').textContent = t.copyright; $('foot-note').textContent = t.footNote;
+  document.querySelectorAll('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === S.lang));
+  document.querySelectorAll('[data-theme-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.themeBtn === S.theme));
+  if(OPT.after) OPT.after(t, H);
+  paintBands();
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', e => {
+  const lb = e.target.closest('[data-lang-btn]');
+  if(lb){ S.lang = lb.dataset.langBtn; render(); return; }
+  const tb = e.target.closest('[data-theme-btn]');
+  if(tb){ S.theme = tb.dataset.themeBtn; root.dataset.theme = S.theme; render(); return; }
+  const sc = e.target.closest('[role=tab][data-scene]');
+  if(sc){ S.scene = sc.dataset.scene; renderStage(); return; }
+  const nb = e.target.closest('.note-btn');
+  if(nb){
+    const was = nb.getAttribute('aria-pressed') === 'true';
+    document.querySelectorAll('.note-btn').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    nb.setAttribute('aria-pressed', String(!was)); relight(); return;
+  }
+  const cp = e.target.closest('[data-copy]');
+  if(cp){
+    const t = T(), box = cp.closest('[data-cta]'), st = box && box.querySelector('[data-copy-status]');
+    const say = (ok) => { cp.querySelector('span').textContent = ok ? t.copied : t.copy; if(st) st.textContent = ok ? t.copied : t.copyFail; cp.firstElementChild.outerHTML = ic(ok ? 'check' : 'copy'); setTimeout(() => { cp.querySelector('span').textContent = t.copy; cp.firstElementChild.outerHTML = ic('copy'); if(st) st.textContent = ''; }, 2000); };
+    (navigator.clipboard ? navigator.clipboard.writeText(CMD) : Promise.reject()).then(() => say(true), () => { const code = box && box.querySelector('code'); if(code){ const r = document.createRange(); r.selectNodeContents(code); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } say(false); });
+  }
+});
+['mouseover','focusin'].forEach(ev => document.addEventListener(ev, e => {
+  const nb = e.target.closest && e.target.closest('.note-btn');
+  if(nb) light(nb.dataset.hlTarget);
+}));
+['mouseout','focusout'].forEach(ev => document.addEventListener(ev, e => {
+  const nb = e.target.closest && e.target.closest('.note-btn');
+  if(!nb) return;
+  relight();
+}));
+document.addEventListener('keydown', e => {
+  const list = e.target.closest && e.target.closest('[role=tablist]');
+  if(!list) return;
+  const tabs = [...list.querySelectorAll('[role=tab]')];
+  const i = tabs.findIndex(x => x.dataset.scene === S.scene);
+  let n = null;
+  if(['ArrowRight','ArrowDown'].includes(e.key)) n = (i + 1) % tabs.length;
+  if(['ArrowLeft','ArrowUp'].includes(e.key)) n = (i - 1 + tabs.length) % tabs.length;
+  if(e.key === 'Home') n = 0; if(e.key === 'End') n = tabs.length - 1;
+  if(n === null) return;
+  e.preventDefault(); S.scene = tabs[n].dataset.scene; renderStage(); list.querySelector(`[data-scene="${S.scene}"]`).focus();
+});
+const nav = $('nav');
+addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), {passive:true});
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => paintBands(), 80); });
+const q = new URLSearchParams(location.search);
+if(q.get('lang') === 'tr') S.lang = 'tr';
+if(['light','dark'].includes(q.get('theme'))){ S.theme = q.get('theme'); root.dataset.theme = S.theme; }
+if(q.get('scene')) S.scene = q.get('scene');
+render();
+if(document.fonts) document.fonts.ready.then(() => { for(const k in cwCache) delete cwCache[k]; paintBands(); });
+})();
+
+</script>
+</body>
+</html>

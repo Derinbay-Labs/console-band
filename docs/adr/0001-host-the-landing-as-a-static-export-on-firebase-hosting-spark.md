@@ -18,7 +18,7 @@ company default is a Next.js static export on Firebase Hosting (Spark) with a
 preview → smoke → promote deploy, copied from netpano (`landing-page` skill,
 `references/stack-and-deploy.md`). console-band differs from netpano in four
 ways that this record has to settle: the repository is **public**, its trunk
-is `main`, it has no GCP project and no CI yet, and the repository root is
+is `master`, it has no GCP project and no CI yet, and the repository root is
 the Claude Code plugin itself (`.claude-plugin/marketplace.json` has
 `"source": "./"`), so every file committed here is copied into each user's
 plugin install. DNS for `derinbay.com` is on Cloudflare; the existing
@@ -82,20 +82,20 @@ except where the public repository makes the default unsafe.
 ### CI and deploy
 
 - `.github/workflows/web.yml` ("Web"): on `pull_request` and on `push` to
-  `main` for `web/**`, `firebase.json` and the two workflow files; one
+  `master` for `web/**`, `firebase.json` and the two workflow files; one
   `npm ci`, lint, build, assert `out/en/index.html` and `out/tr/index.html`.
   It never uses `pull_request_target`, secrets or `id-token`.
 - `.github/workflows/deploy-web.yml`: netpano's shape with these values.
-  1. Trigger: `workflow_run` of "Web" on `main`, plus `workflow_dispatch`.
+  1. Trigger: `workflow_run` of "Web" on `master`, plus `workflow_dispatch`.
      The job runs only when the event is `workflow_dispatch`, or when the
      run concluded `success`, its event is `push`, and
      `workflow_run.head_repository.full_name == github.repository` (a fork
-     branch named `main` must not deploy). `concurrency: deploy-web`.
+     branch named `master` must not deploy). `concurrency: deploy-web`.
   2. Auth: keyless WIF. Repository **variables** (not secrets; none needed)
      `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`. The WIF provider's
      attribute condition is
      `assertion.repository == 'Derinbay-Labs/console-band' &&
-     assertion.ref == 'refs/heads/main'`. The deploy service account holds
+     assertion.ref == 'refs/heads/master'`. The deploy service account holds
      only `roles/firebasehosting.admin` and
      `roles/serviceusage.serviceUsageConsumer` (firebase-tools needs
      `serviceusage.services.use` to call the Hosting API) on the project.
@@ -129,7 +129,7 @@ except where the public repository makes the default unsafe.
    Release history → previous release → **Roll back**; or
    `firebase hosting:clone console-band-derinbay:@<VERSION_ID>
    console-band-derinbay:live`.
-2. Durable: revert the PR on `main`; "Web" then redeploys the reverted
+2. Durable: revert the PR on `master`; "Web" then redeploys the reverted
    tree through the normal pipeline.
 3. Take the landing offline: the CEO deletes the `console-band` DNS record;
    the `.web.app` URL keeps serving.
@@ -141,7 +141,7 @@ except where the public repository makes the default unsafe.
 - Same stack, headers and deploy shape as netpano; the frontend owner and
   devops reuse it.
 - No deploy secret exists; a public log or a fork PR cannot deploy, because
-  WIF only trusts `main` of this repository.
+  WIF only trusts `master` of this repository.
 - An own project gives the landing its own Spark quota and IAM.
 
 #### Bad / cost

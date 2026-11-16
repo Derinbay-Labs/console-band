@@ -1,15 +1,15 @@
 name: Deploy Web
 
-# CD for the landing (ADR 0001): after a green Web CI run on main, build the static
+# CD for the landing (ADR 0001): after a green Web CI run on master, build the static
 # export, publish it to the Firebase Hosting preview channel, smoke it, then promote
 # that exact version to live with hosting:clone, so live is never a separate build.
-# Keyless WIF with repository variables only. workflow_dispatch redeploys main by hand.
+# Keyless WIF with repository variables only. workflow_dispatch redeploys master by hand.
 
 on:
   workflow_run:
     workflows: [Web]
     types: [completed]
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -32,10 +32,10 @@ env:
 jobs:
   deploy:
     name: Build, publish preview and promote to live
-    # A fork branch named main must not deploy: only pushes to this repository.
-    # A manual run deploys only main: another branch has had no review and no green CI.
+    # A fork branch named master must not deploy: only pushes to this repository.
+    # A manual run deploys only master: another branch has had no review and no green CI.
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository)

@@ -1,0 +1,11 @@
+{
+  "name": "minimatch",
+  "version": "11.0.9",
+  "private": true,
+  "description": "Default-export shim over minimatch 11 for callers of minimatch 3/5. Added for #24; remove when no dependency needs minimatch below 11.",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "minimatch-real": "npm:minimatch@^11.0.9"
+  }
+}

@@ -53,6 +53,14 @@ jobs:
         with:
           ref: ${{ env.SHA }}
 
+      # Self-hosted runners share the developer's OS user: keep gcloud state in the job's temp dir
+      # so auth/setup-gcloud never touch the user's global gcloud config. The runner context is
+      # not available in job-level env, so this step exports it to later steps.
+      - name: Isolate gcloud config to runner.temp
+        run: |
+          mkdir -p "$RUNNER_TEMP/gcloud"
+          echo "CLOUDSDK_CONFIG=$RUNNER_TEMP/gcloud" >> "$GITHUB_ENV"
+
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         id: auth
         with:

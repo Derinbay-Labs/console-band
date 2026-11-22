@@ -1,0 +1,77 @@
+name: Tree check (reusable)
+
+# company#350 / #366: a squash merge to master whose tree equals the merged
+# PR's head tree has already been tested by the PR run, so the push-to-master
+# test jobs would only repeat it. Callers run this job on `push` only, then gate
+# their test jobs on `needs.tree.outputs.identical != 'true'`. The decision
+# fails open toward testing (see scripts/identical-tree.sh); if this job itself
+# fails, its output is empty and the callers still run their tests.
+#
+# Caller pattern (web.yml, backend.yml, android.yml and ios.yml carry it):
+#
+#   tree:
+#     if: github.event_name == 'push'
+#     permissions: { contents: read, pull-requests: read, actions: read }
+#     uses: ./.github/workflows/tree-check.yml
+#   <test job>:
+#     needs: tree
+#     if: ${{ !cancelled() && needs.tree.outputs.identical != 'true' }}
+#
+# Only jobs that merely repeat the PR run are gated. A job that must run on
+# every master push (a build artifact for deploy, a coverage baseline) is not;
+# gate its test steps instead, as web.yml does.
+#
+# The PR run being compared is the CALLER's own workflow (the file name comes
+# from GITHUB_WORKFLOW_REF, which in a reusable workflow is the caller's), so
+# every caller's path filter must list this file and the identical-tree scripts:
+# a change to the skip logic then runs the caller's CI. The job also runs the
+# skip logic's test and template-standard-check.sh on the product's own
+# workflows (company#383); it runs on push only, as the callers gate it.
+
+on:
+  workflow_call:
+    outputs:
+      identical:
+        description: "'true' when the pushed tree equals the merged PR head tree."
+        value: ${{ jobs.tree.outputs.identical }}
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+jobs:
+  tree:
+    name: Tree check
+    # Public repo: GitHub-hosted only, never the company self-hosted runners.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      identical: ${{ steps.check.outputs.identical }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/scripts
+            .github/workflows
+          fetch-depth: 1
+
+      # company#383: the skip logic and the CI standard guard themselves. A change
+      # to identical-tree.sh is proven by its stub test, and a product workflow
+      # that drifted from the template (company#371) fails here. Both fail this
+      # job, so its output is empty and the callers still run their tests.
+      - name: Identical-tree skip behaves
+        run: bash .github/scripts/identical-tree.test.sh
+
+      - name: Workflows keep the company CI standard
+        run: bash .github/scripts/template-standard-check.sh .github/workflows
+
+      - name: Compare the pushed tree with the merged PR head tree
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: bash .github/scripts/identical-tree.sh

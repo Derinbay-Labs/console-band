@@ -3,6 +3,12 @@ name: Web
 # Next.js static-export CI for the landing in web/. Runs on GitHub-hosted runners
 # (ADR 0001, decision #7). No secrets, no id-token and never pull_request_target:
 # this workflow also runs for fork PRs.
+#
+# Company CI standard (company#350/#366, #748; templates/.github/workflows/web.yml):
+# one `npm ci`, e2e is a step, and test steps skip when a push merely repeats a
+# green PR run (tree-check.yml) or when every changed file is in CI_DATA_PATHS.
+# The build and its export checks always run, so deploy-web.yml still follows a
+# green run.
 
 on:
   pull_request:
@@ -11,6 +17,9 @@ on:
       - 'plugin/.claude-plugin/plugin.json'
       - 'firebase.json'
       - '.github/workflows/web.yml'
+      - '.github/workflows/tree-check.yml'
+      - '.github/scripts/identical-tree*.sh'
+      - '.github/scripts/data-only*.sh'
       - '.github/workflows/deploy-web.yml'
   push:
     branches: [master]
@@ -19,11 +28,22 @@ on:
       - 'plugin/.claude-plugin/plugin.json'
       - 'firebase.json'
       - '.github/workflows/web.yml'
+      - '.github/workflows/tree-check.yml'
+      - '.github/scripts/identical-tree*.sh'
+      - '.github/scripts/data-only*.sh'
       - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  # Globs (bash `case`, `*` crosses `/`) of build inputs that no test reads; a run
+  # that changes only these skips its tests (company#748). Empty: always test.
+  # must_test overrides the identical-tree skip after a data-only PR run.
+  # Declare a path only after corrupting a file there leaves the tests green and
+  # fails the build. The globs must also be in the `paths:` filters above.
+  CI_DATA_PATHS: ''
 
 concurrency:
   group: web-${{ github.ref }}
@@ -35,12 +55,40 @@ defaults:
     working-directory: web
 
 jobs:
+  tree:
+    name: Tree check
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+    uses: ./.github/workflows/tree-check.yml
+
   web:
     name: Lint, typecheck, test, build, e2e
+    needs: tree
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read # data-only.sh: the PR's file list
+      actions: read # data-only.sh: the previous push run must be green
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Fails open: any doubt prints data_only=false and the tests run.
+      - name: Only declared data paths changed
+        id: scope
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATA_PATHS: ${{ env.CI_DATA_PATHS }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: bash .github/scripts/data-only.sh
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -50,8 +98,11 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+        if: (needs.tree.outputs.identical != 'true' || steps.scope.outputs.must_test == 'true') && steps.scope.outputs.data_only != 'true'
       - run: npm run typecheck
+        if: (needs.tree.outputs.identical != 'true' || steps.scope.outputs.must_test == 'true') && steps.scope.outputs.data_only != 'true'
       - run: npm test
+        if: (needs.tree.outputs.identical != 'true' || steps.scope.outputs.must_test == 'true') && steps.scope.outputs.data_only != 'true'
       - run: npm run build
 
       - name: Static export has both locales
@@ -63,9 +114,12 @@ jobs:
       # e2e serves the export built above (playwright.config.ts runs scripts/serve-out.mjs
       # on PLAYWRIGHT_PORT); bind port 0 so the port is run-scoped.
       - name: Choose a run-scoped port
+        if: (needs.tree.outputs.identical != 'true' || steps.scope.outputs.must_test == 'true') && steps.scope.outputs.data_only != 'true'
         run: |
           port="$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close(()=>process.exit(0));});")"
           echo "PLAYWRIGHT_PORT=$port" >> "$GITHUB_ENV"
 
       - run: npx playwright install --with-deps chromium
+        if: (needs.tree.outputs.identical != 'true' || steps.scope.outputs.must_test == 'true') && steps.scope.outputs.data_only != 'true'
       - run: npm run test:e2e
+        if: (needs.tree.outputs.identical != 'true' || steps.scope.outputs.must_test == 'true') && steps.scope.outputs.data_only != 'true'

@@ -68,7 +68,7 @@ jobs:
     name: Lint, typecheck, test, build, e2e
     needs: tree
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read

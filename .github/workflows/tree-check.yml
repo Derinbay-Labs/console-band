@@ -44,7 +44,7 @@ jobs:
   tree:
     name: Tree check
     # Public repo: GitHub-hosted only, never the company self-hosted runners.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
       identical: ${{ steps.check.outputs.identical }}
